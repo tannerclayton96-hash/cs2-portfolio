@@ -1,0 +1,12 @@
+# Wrangler local state — never commit this
+.wrangler/
+
+# Old dashboard copies
+cs2-portfolio-code/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if you ever add dependencies)
+node_modules/
