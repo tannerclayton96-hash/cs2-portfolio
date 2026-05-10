@@ -10,6 +10,18 @@ compatibility_date = "2025-09-01"
 # [vars]
 # DEBUG = "true"
 
+# -----------------------------------------------------------------------
+# WORKER_TOKEN — optional shared secret to prevent unauthorized use
+# -----------------------------------------------------------------------
+# If set, every request (except /health) must include the header:
+#   X-Worker-Token: <your-secret>
+#
+# Set it as an encrypted Wrangler secret — NEVER put the value in this file:
+#   wrangler secret put WORKER_TOKEN
+#
+# Then enter the same value in your dashboard → Setup → Proxy → Worker Token.
+# -----------------------------------------------------------------------
+
 # Free tier defaults — no extra config needed
 [observability]
 enabled = true

@@ -4,6 +4,14 @@
 # Old dashboard copies
 cs2-portfolio-code/
 
+# Secrets and environment files — never commit these
+.env
+.env.*
+*.local
+secrets.*
+*.secret
+wrangler.toml.local
+
 # OS
 .DS_Store
 Thumbs.db

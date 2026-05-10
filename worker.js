@@ -45,6 +45,19 @@ export default {
       return jsonResponse({ error: 'Method not allowed' }, 405, origin, env);
     }
 
+    // --- Token auth (optional) ---
+    // If WORKER_TOKEN secret is set, every route except /health requires the header.
+    // Set via: wrangler secret put WORKER_TOKEN   (never put the value in wrangler.toml)
+    if (env.WORKER_TOKEN && url.pathname !== '/health') {
+      const provided = request.headers.get('X-Worker-Token');
+      if (provided !== env.WORKER_TOKEN) {
+        return jsonResponse({
+          error: 'Unauthorized',
+          hint: 'Set X-Worker-Token header to match the WORKER_TOKEN secret on this worker.',
+        }, 401, origin, env);
+      }
+    }
+
     try {
       // --- Routes ---
       if (url.pathname === '/health') {
@@ -234,7 +247,7 @@ function applyCors(headers, origin, env) {
   }
   headers.set('Access-Control-Allow-Origin', allowedOrigin);
   headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, X-Worker-Token');
   headers.set('Access-Control-Max-Age', '86400');
   headers.set('Vary', 'Origin');
 }

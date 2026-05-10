@@ -528,9 +528,42 @@
   }
   .callout strong { color: var(--hot); font-weight: 700; }
 
+  /* QUICK START STRIP */
+  .qs-strip {
+    display: flex; gap: 0; margin-bottom: 32px;
+    border: 1px solid var(--border-bright);
+    overflow: hidden;
+  }
+  .qs-step {
+    flex: 1; padding: 20px 22px;
+    border-right: 1px solid var(--border);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .qs-step:last-child { border-right: none; }
+  .qs-step .qs-num {
+    font-family: var(--display); font-weight: 900;
+    font-size: 28px; color: var(--gold); line-height: 1;
+    opacity: 0.8; flex-shrink: 0; padding-top: 2px;
+  }
+  .qs-step .qs-body {}
+  .qs-step .qs-label {
+    font-family: var(--sans); font-weight: 700; font-size: 14px;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .qs-step .qs-detail {
+    font-family: var(--sans); font-size: 12px;
+    color: var(--text-dim); line-height: 1.45;
+  }
+  .qs-step .qs-detail strong { color: var(--hot); font-weight: 600; }
+  @media (max-width: 700px) {
+    .qs-strip { flex-direction: column; }
+    .qs-step { border-right: none; border-bottom: 1px solid var(--border); }
+    .qs-step:last-child { border-bottom: none; }
+  }
+
   /* GETTING STARTED */
   .setup-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
     margin-bottom: 32px;
   }
   @media (max-width: 900px) { .setup-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -890,6 +923,45 @@
   }
   .save-status.ok { color: var(--profit); }
   .save-status.err { color: var(--loss); }
+
+  /* Inventory sort pills */
+  .inv-sort-pills { display: flex; gap: 4px; }
+  .inv-sort-pill {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 2px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  }
+  .inv-sort-pill:hover { border-color: var(--hot); color: var(--hot); }
+  .inv-sort-pill.active { border-color: var(--hot); color: var(--hot); background: rgba(255,119,51,0.08); }
+
+  /* Price sync progress bar */
+  .price-progress {
+    display: none;
+    margin-top: 10px;
+    width: 100%;
+  }
+  .price-progress.active { display: block; }
+  .price-progress-track {
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .price-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--hot);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .price-progress-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-top: 5px;
+  }
 
   /* PROFILE CARD */
   .profile-card {
@@ -2210,6 +2282,22 @@
     font-family: var(--mono); font-size: 12px;
     padding: 2px 6px;
   }
+  .claude-tip {
+    background: rgba(255,119,51,0.08);
+    border: 1px solid rgba(255,119,51,0.30);
+    border-left: 3px solid var(--hot);
+    padding: 14px 16px;
+    margin-top: 24px;
+  }
+  .claude-tip .ct-label {
+    font-family: var(--mono); font-size: 10px;
+    color: var(--hot); letter-spacing: 0.2em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .claude-tip p { font-size: 13px; margin-bottom: 6px; }
+  .claude-tip p:last-child { margin-bottom: 0; }
+  .claude-tip em { color: var(--text); font-style: italic; }
+  .claude-tip code { background: transparent; padding: 0; color: var(--hot-bright); }
 
   /* HELP-BAR INSIDE IMPORT PANELS */
   .import-help-bar {
@@ -2517,13 +2605,26 @@
 
     <div class="inv-grid">
       <div class="chart-card">
-        <div class="title">[ Value by Category ]</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="title" style="margin-bottom: 0;">[ Value by Category ]</div>
+          <div class="inv-sort-pills" id="catModePills">
+            <button class="inv-sort-pill active" data-mode="rarity" onclick="setInventoryChartMode('rarity')">Rarity</button>
+            <button class="inv-sort-pill" data-mode="type" onclick="setInventoryChartMode('type')">Weapon Type</button>
+          </div>
+        </div>
         <div class="canvas-wrap" style="height: 220px;"><canvas id="catChart"></canvas></div>
         <div class="legend-list" id="catLegend"></div>
         <div id="catEmpty" class="empty-state" style="margin-top:16px;">Paste your CSFloat inventory via setup</div>
       </div>
       <div class="chart-card">
-        <div class="title">[ Holdings ]</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="title" id="holdingsTitle" style="margin-bottom: 0; cursor: default;">[ Holdings ]</div>
+          <div class="inv-sort-pills" id="invSortPills">
+            <button class="inv-sort-pill active" data-sort="value" onclick="setInventorySort('value')">Most Valuable</button>
+            <button class="inv-sort-pill" data-sort="newest" onclick="setInventorySort('newest')">Newest</button>
+            <button class="inv-sort-pill" data-sort="oldest" onclick="setInventorySort('oldest')">Oldest</button>
+          </div>
+        </div>
         <table class="data" id="holdingsTable">
           <thead>
             <tr>
@@ -2698,9 +2799,28 @@ Dual Berettas | Melondrama | MW | classified | 9.30"></textarea>
       <div class="meta">For new operatives // Share this file with friends</div>
     </div>
 
-    <div class="callout" style="margin-bottom: 32px;">
-      <div class="label">Briefing</div>
-      <div class="text">This is a single-file CS2 portfolio dashboard. To run your own version: <strong>save this HTML file</strong>, gather data from the four sources below, then import. Once saved locally, your data persists between visits via your browser. Hand off the same file to a buddy and they can clear it and start fresh.</div>
+    <div class="qs-strip">
+      <div class="qs-step">
+        <div class="qs-num">01</div>
+        <div class="qs-body">
+          <div class="qs-label">Save this file</div>
+          <div class="qs-detail">Right-click → Save As → open it in any browser. Your data stays in that browser — share the file with a friend and they start fresh.</div>
+        </div>
+      </div>
+      <div class="qs-step">
+        <div class="qs-num">02</div>
+        <div class="qs-body">
+          <div class="qs-label">Add your Steam profile</div>
+          <div class="qs-detail">Hit <strong>Open Settings ⚙</strong> above → Profile tab → paste your Steam profile URL. That's all the auth you need.</div>
+        </div>
+      </div>
+      <div class="qs-step">
+        <div class="qs-num">03</div>
+        <div class="qs-body">
+          <div class="qs-label">Sync &amp; go</div>
+          <div class="qs-detail">Click <strong>Sync from Steam</strong> below, then <strong>Sync Prices</strong>. Inventory and live market values load automatically — no copy-paste required.</div>
+        </div>
+      </div>
     </div>
 
     <!-- COMPACT STATUS — replaces the old stack of Profile + Proxy + Pricing cards.
@@ -2748,46 +2868,44 @@ Dual Berettas | Melondrama | MW | classified | 9.30"></textarea>
         </div>
         <div class="actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button class="btn primary" onclick="syncSteamInventory()"><span class="ico">⟳</span>Sync from Steam</button>
+          <button class="btn primary" onclick="fetchSkinportPrices(true)"><span class="ico">$</span>Sync Prices</button>
           <button class="btn" onclick="clearSnapshot()"><span class="ico">×</span>Reset baseline</button>
+        </div>
+        <div class="price-progress" id="priceProgress">
+          <div class="price-progress-track"><div class="price-progress-fill" id="priceProgressFill"></div></div>
+          <div class="price-progress-label" id="priceProgressLabel"></div>
         </div>
       </div>
       <div class="sync-review" id="syncReview"></div>
     </div>
 
     <details class="readmore collapsible-section">
-      <summary><span class="csum-icon">+</span><span class="csum-label">Data Source Guide</span><span class="csum-hint">4 sources · how to grab data from each</span></summary>
+      <summary><span class="csum-icon">+</span><span class="csum-label">Optional: Import Historical Data</span><span class="csum-hint">3 sources · add when ready · not required for live inventory</span></summary>
       <div class="readmore-body" style="padding-top: 16px;">
+        <p style="font-family: var(--sans); font-size: 13px; color: var(--text-dim); margin-bottom: 20px; max-width: 720px;">Your live inventory and market prices are already handled above. These sources let you backfill historical trade data, float values, and case-opening stats — useful once you want the full picture.</p>
         <div class="setup-grid">
-          <div class="setup-step has-link" data-link="https://steamcommunity.com/market/myhistory" role="link" tabindex="0">
+          <div class="setup-step has-link" id="sourceCardSteam" data-link="https://steamcommunity.com/market/myhistory" role="link" tabindex="0">
             <div class="stepnum">01</div>
-            <h3>Steam Market</h3>
-            <div class="source-url"><a href="https://steamcommunity.com/market/myhistory" target="_blank" rel="noopener noreferrer">steamcommunity.com/market/myhistory</a></div>
-            <div class="desc">Every CS2 buy and sell with prices and dates. The foundation of your cash flow. Scroll to load all transactions before grabbing.</div>
+            <h3>Steam Market History</h3>
+            <div class="source-url"><a id="sourceLinkSteam" href="https://steamcommunity.com/market/myhistory" target="_blank" rel="noopener noreferrer">steamcommunity.com/market/myhistory</a></div>
+            <div class="desc">Every CS2 buy and sell with prices and dates. Scroll to load all transactions, then paste below. Backfills your trade ledger and cash flow history.</div>
             <div class="feeds">Feeds <span class="arrow">→</span> Cash Flow · Trade Ledger</div>
           </div>
 
-          <div class="setup-step has-link" data-link="https://csfloat.com" role="link" tabindex="0">
+          <div class="setup-step has-link" id="sourceCardCSFloat" data-link="https://csfloat.com/inventory" role="link" tabindex="0">
             <div class="stepnum">02</div>
             <h3>CSFloat</h3>
-            <div class="source-url"><a href="https://csfloat.com" target="_blank" rel="noopener noreferrer">csfloat.com</a></div>
-            <div class="desc">Sign in with Steam. Inventory page shows every item you hold with current market values and float scores. Best snapshot of "what's it worth right now."</div>
+            <div class="source-url"><a id="sourceLinkCSFloat" href="https://csfloat.com/inventory" target="_blank" rel="noopener noreferrer">csfloat.com/inventory</a></div>
+            <div class="desc">Sign in with Steam. Shows every item you hold with float scores and third-party market values. Useful if you want float data alongside Steam prices.</div>
             <div class="feeds">Feeds <span class="arrow">→</span> Inventory · Top Holdings</div>
           </div>
 
-          <div class="setup-step has-link" data-link="https://lootspectrum.com" role="link" tabindex="0">
+          <div class="setup-step has-link" id="sourceCardLoot" data-link="https://lootspectrum.com" role="link" tabindex="0">
             <div class="stepnum">03</div>
             <h3>Lootspectrum</h3>
-            <div class="source-url"><a href="https://lootspectrum.com" target="_blank" rel="noopener noreferrer">lootspectrum.com</a></div>
-            <div class="desc">Sign in with Steam. Cases page gives total opens, rarity distribution, and your most-opened cases. Great for the lifetime stats panel.</div>
+            <div class="source-url"><a id="sourceLinkLoot" href="https://lootspectrum.com" target="_blank" rel="noopener noreferrer">lootspectrum.com</a></div>
+            <div class="desc">Sign in with Steam. Cases page gives lifetime open counts, rarity distribution, and per-case breakdowns. Populates the Analytics and Year Chart sections.</div>
             <div class="feeds">Feeds <span class="arrow">→</span> Analytics · Year Chart</div>
-          </div>
-
-          <div class="setup-step">
-            <div class="stepnum">04</div>
-            <h3>Manual Logging</h3>
-            <div class="source-url" style="color: var(--text-dim);">From here on out</div>
-            <div class="desc">Going forward, log new sessions manually using the Session Log form. Add pulls one-by-one or paste a bulk list right after you finish opening cases.</div>
-            <div class="feeds">Feeds <span class="arrow">→</span> Session Log · Big Hits</div>
           </div>
         </div>
       </div>
@@ -2795,10 +2913,10 @@ Dual Berettas | Melondrama | MW | classified | 9.30"></textarea>
 
     <!-- DATA IMPORT PANELS -->
     <details class="readmore collapsible-section" style="margin-top: 24px;">
-      <summary><span class="csum-icon">+</span><span class="csum-label">Bulk Data Import</span><span class="csum-hint">3 parsers · CSFloat · Steam Market · Lootspectrum</span></summary>
+      <summary><span class="csum-icon">+</span><span class="csum-label">Historical Data Import</span><span class="csum-hint">paste data from the 3 optional sources above</span></summary>
       <div class="readmore-body" style="padding-top: 20px;">
         <p style="font-family: var(--sans); font-size: 14px; color: var(--text-dim); margin-bottom: 24px; max-width: 700px;">
-          Paste data from each source below to populate the matching dashboard sections. Each parser is forgiving — paste raw tables, Claude-formatted output, or simple lists. Tap <strong style="color: var(--hot);">How to get this</strong> on any panel for step-by-step instructions.
+          Paste data from the optional sources above to backfill historical data. Each parser is forgiving — paste raw tables or simple lists. Tap <strong style="color: var(--hot);">How to get this</strong> for step-by-step instructions.
         </p>
 
       <div class="import-panel" id="ip-csfloat">
@@ -2842,13 +2960,19 @@ AWP | Ice Coaled | Field-Tested | 7.91"></textarea>
         </div>
         <div class="import-body">
           <div class="import-help-bar">
-            <div class="summary">Paste your Steam Market history below. <code style="background:var(--bg);color:var(--gold);font-family:var(--mono);font-size:11px;padding:2px 6px;">BOUGHT|SOLD | Item | Date | Price</code></div>
+            <div class="summary">Paste JSON from the render endpoint, or formatted text. <code style="background:var(--bg);color:var(--gold);font-family:var(--mono);font-size:11px;padding:2px 6px;">Auto-detected</code></div>
             <button class="help-link" onclick="openDrawer('steam')"><span class="ico">?</span>How to get this</button>
           </div>
-          <textarea class="bulk-textarea" id="steamText" placeholder="BOUGHT | Revolution Case | Apr 12 2026 | 0.53
-BOUGHT | Dreams &amp; Nightmares Case | Apr 11 2026 | 2.35
-SOLD | StatTrak™ Dual Berettas | Melondrama | Apr 9 2026 | 6.19
-SOLD | M4A1-S | Night Terror | Apr 9 2026 | 3.95"></textarea>
+          <textarea class="bulk-textarea" id="steamText" placeholder='Paste either:
+
+① Raw JSON from steamcommunity.com/market/myhistory/render/?count=500&currency=1
+   (visit that URL while logged in → Ctrl+A → Ctrl+C → paste here)
+
+② Formatted text:
+   BOUGHT | Revolution Case | Apr 12 2026 | 0.53
+   SOLD | StatTrak™ Dual Berettas | Apr 9 2026 | 6.19
+
+Tap "How to get this" for step-by-step instructions.'></textarea>
           <div class="form-actions">
             <button class="btn" onclick="document.getElementById('steamText').value=''">Clear</button>
             <button class="btn primary" onclick="parseSteam()">Parse &amp; Import</button>
@@ -3044,7 +3168,11 @@ knife: 2"></textarea>
               <label>Your Worker URL</label>
               <input type="url" id="proxyUrlInputOwn" placeholder="https://cs2-portfolio-proxy.you.workers.dev" autocomplete="off" inputmode="url">
             </div>
-            <p class="drawer-hint">No trailing slash. Stored locally only — never sent anywhere.</p>
+            <div class="field-row" style="margin-top: 8px;">
+              <label>Worker Token <span style="font-weight:400; color: var(--text-muted);">(optional)</span></label>
+              <input type="password" id="workerTokenInput" placeholder="Only if you set WORKER_TOKEN on your worker" autocomplete="off">
+            </div>
+            <p class="drawer-hint">Token is stored locally only. Set via <code>wrangler secret put WORKER_TOKEN</code> — never in wrangler.toml.</p>
             <div class="form-actions">
               <button type="button" class="btn" onclick="testProxy()">Test</button>
               <button type="button" class="btn danger" onclick="clearProxyUrl()">Remove</button>
@@ -3097,38 +3225,41 @@ knife: 2"></textarea>
       <!-- CSFLOAT -->
       <div class="drawer-section" data-section="csfloat">
         <div class="drawer-source-cta">
-          <div class="url">csfloat.com</div>
+          <div class="url">csfloat.com/inventory</div>
           <div class="feeds">Powers <span class="arrow">→</span> Inventory · Top Holdings</div>
-          <a class="btn" href="https://csfloat.com" target="_blank" rel="noopener noreferrer">Open CSFloat ↗</a>
+          <a class="btn" href="https://csfloat.com/inventory" target="_blank" rel="noopener noreferrer">Open CSFloat ↗</a>
         </div>
 
-        <h4>What it does</h4>
-        <p>Best snapshot of "what's my inventory worth right now." CSFloat shows every item you hold with current market prices and float scores.</p>
+        <h4>What you get</h4>
+        <p>Every item you hold with wear conditions and current market prices. Useful if you want float data or a third-party price snapshot alongside Steam's live prices.</p>
 
         <h4>Step-by-step</h4>
         <ol>
-          <li>Open <code>csfloat.com</code> and click <strong>Sign in with Steam</strong></li>
-          <li>Click your avatar → <strong>My Inventory</strong></li>
-          <li>Wait for prices to load (each item shows a $ value)</li>
-          <li>Select your item rows + values, copy them</li>
-          <li>Paste into the panel and tap <strong>Parse &amp; Import</strong></li>
+          <li>Click <strong>Open CSFloat</strong> above — sign in with Steam if prompted</li>
+          <li>Wait 15–30 seconds for prices to load ($ values appear on each item card)</li>
+          <li>Click the first item row, then <code>Shift+Click</code> the last — or press <code>Ctrl+A</code> to select all text on the page</li>
+          <li>Press <code>Ctrl+C</code>, then paste here and tap <strong>Parse &amp; Import</strong></li>
         </ol>
 
-        <h4>Format</h4>
-        <p>One item per line. The parser is forgiving — pipes, tabs, multiple spaces all work as separators.</p>
-        <pre>Item Name | Wear | Price
-★ Sport Gloves | Amphibious | Well-Worn | 308.82
+        <h4>Expected format</h4>
+        <pre>★ Sport Gloves | Amphibious | Well-Worn | 308.82
 ★ Ursus Knife | Tiger Tooth (StatTrak™) | Factory New | 177.91
 Glock-18 | Pink DDPAT (Souvenir) | Minimal Wear | 10.70
 MP7 | Fade | Minimal Wear | 9.39</pre>
 
-        <h4>Tips</h4>
+        <h4>Notes</h4>
         <ul>
-          <li>Prefix knives and gloves with <code>★</code> — they get gold-tier highlighting</li>
-          <li>Include <code>(StatTrak™)</code> or <code>(Souvenir)</code> in the item name to flag them</li>
-          <li>Wear can be the short code (<code>FN</code>, <code>MW</code>, <code>FT</code>, <code>WW</code>, <code>BS</code>) or full name (<code>Factory New</code>, etc.)</li>
-          <li>If <strong>Live Pricing</strong> is on, pasted prices are auto-replaced with current Skinport market values</li>
+          <li>Wear codes work: <code>FN MW FT WW BS</code> or full names like <code>Factory New</code></li>
+          <li>Prefix knives and gloves with <code>★</code> for gold-tier highlighting</li>
+          <li><code>StatTrak™</code> and <code>Souvenir</code> in the item name are parsed and flagged automatically</li>
         </ul>
+
+        <div class="claude-tip">
+          <div class="ct-label">Claude shortcut</div>
+          <p>Open your CSFloat inventory page, press <code>Ctrl+A</code> → <code>Ctrl+C</code>. Paste into Claude (claude.ai) and say:</p>
+          <p><em>"Extract the CS2 items from this page. Format as one per line: Item Name | Wear | Price"</em></p>
+          <p>Copy Claude's output and paste it into the box above.</p>
+        </div>
       </div>
 
       <!-- STEAM MARKET -->
@@ -3139,81 +3270,98 @@ MP7 | Fade | Minimal Wear | 9.39</pre>
           <a class="btn" href="https://steamcommunity.com/market/myhistory" target="_blank" rel="noopener noreferrer">Open Market History ↗</a>
         </div>
 
-        <h4>What it does</h4>
-        <p>Your full lifetime record of CS2 buys and sells on the Steam Market — the source of truth for cash flow. Every key, case, and skin transaction is here.</p>
+        <h4>What you get</h4>
+        <p>Your full CS2 buy and sell history — cases, skins, keys. Powers your cash flow chart and biggest trade table.</p>
 
-        <h4>Step-by-step</h4>
+        <h4>Method A — JSON (recommended · no scrolling needed)</h4>
         <ol>
-          <li>Open the Market History page (button above)</li>
-          <li>Sign in if Steam asks</li>
-          <li><strong>Scroll all the way down</strong> until "older" stops loading — this matters, partial scrolls miss transactions</li>
-          <li>Select all visible transactions (Ctrl+A or long-press → Select All)</li>
-          <li>Paste into the panel and tap <strong>Parse &amp; Import</strong></li>
+          <li>Make sure you're logged into Steam in this browser</li>
+          <li>Open this URL directly: <a href="https://steamcommunity.com/market/myhistory/render/?query=&start=0&count=500&country=US&language=english&currency=1" target="_blank" rel="noopener noreferrer"><code>market/myhistory/render/?count=500&currency=1</code></a></li>
+          <li>The page will show raw JSON text — press <code>Ctrl+A</code> then <code>Ctrl+C</code></li>
+          <li>Paste into the box above and tap <strong>Parse &amp; Import</strong> — format is auto-detected</li>
+          <li>If you have 500+ transactions, repeat with <code>?start=500&amp;count=500</code>, then <code>?start=1000</code>, etc.</li>
         </ol>
 
-        <h4>Format</h4>
-        <p>One transaction per line. Order: type, item, date, price.</p>
+        <h4>Method B — Text (copy from the page)</h4>
+        <ol>
+          <li>Open the Market History page (button above) and sign in</li>
+          <li><strong>Scroll all the way to the bottom</strong> — keep clicking "Show more" until it stops. Partial scroll = missing transactions</li>
+          <li><code>Ctrl+A</code> → <code>Ctrl+C</code> to copy all visible text</li>
+          <li>Paste into the box above → <strong>Parse &amp; Import</strong></li>
+        </ol>
+
+        <h4>Text format (if typing or reformatting manually)</h4>
         <pre>BOUGHT | Revolution Case | Apr 12 2026 | 0.53
-BOUGHT | Dreams &amp; Nightmares Case | Apr 11 2026 | 2.35
-SOLD | StatTrak™ Dual Berettas | Melondrama | Apr 9 2026 | 6.19
-SOLD | M4A1-S | Night Terror | Apr 9 2026 | 3.95</pre>
+SOLD | StatTrak™ Dual Berettas | Apr 9 2026 | 6.19</pre>
 
         <h4>How it categorizes</h4>
         <ul>
-          <li>Anything with <strong>"Case"</strong> in the name → counted as case spend</li>
-          <li>Other <code>BOUGHT</code> lines → counted as skin/sticker spend</li>
-          <li>All <code>SOLD</code> lines → counted as realized sales</li>
-          <li>Top 10 sales and top 10 purchases populate the Trade Ledger</li>
+          <li>Items with <strong>Case / Capsule / Package</strong> in the name → case spend</li>
+          <li>Other <code>BOUGHT</code> lines → skin / sticker spend</li>
+          <li><code>SOLD</code> lines → realized sales</li>
+          <li>Top 10 buys and top 10 sales populate the Trade Ledger</li>
         </ul>
 
-        <h4>Tips</h4>
-        <ul>
-          <li>The page only shows ~50 rows at a time — keep scrolling. The "Show more" link at the bottom loads older history</li>
-          <li>If your history is huge (1000+ rows), do it on desktop. Mobile copy-paste of long lists is painful</li>
-        </ul>
+        <div class="claude-tip">
+          <div class="ct-label">Claude shortcut</div>
+          <p>On the market history page, scroll all the way down, then <code>Ctrl+A</code> → <code>Ctrl+C</code>. Paste into Claude and say:</p>
+          <p><em>"Format each CS2 Steam Market transaction as: BOUGHT | Item Name | Date | Price — use SOLD for sales. One per line."</em></p>
+          <p>Paste Claude's output into the box above.</p>
+        </div>
       </div>
 
       <!-- LOOTSPECTRUM -->
       <div class="drawer-section" data-section="loot">
         <div class="drawer-source-cta">
-          <div class="url">lootspectrum.com</div>
-          <div class="feeds">Powers <span class="arrow">→</span> Analytics · Year Chart · Variance Notes</div>
-          <a class="btn" href="https://lootspectrum.com" target="_blank" rel="noopener noreferrer">Open Lootspectrum ↗</a>
+          <div class="url" id="drawerLootUrl">lootspectrum.com</div>
+          <div class="feeds">Powers <span class="arrow">→</span> Analytics · Year Chart</div>
+          <a class="btn" id="drawerLootBtn" href="https://lootspectrum.com" target="_blank" rel="noopener noreferrer">Open Lootspectrum ↗</a>
         </div>
 
-        <h4>What it does</h4>
-        <p>Lootspectrum tracks your case-opening history across your entire CS2 lifetime. It surfaces your true rarity distribution and how many cases you opened each year — useful when your activity predates the session log.</p>
+        <h4>What you get</h4>
+        <p>Your lifetime case-opening stats: rarity distribution and cases per year. Backfills the Analytics section for history that predates your session log.</p>
 
         <h4>Step-by-step</h4>
         <ol>
-          <li>Open <code>lootspectrum.com</code> and sign in with Steam</li>
-          <li>Go to the <strong>Cases</strong> page</li>
-          <li>Find the rarity breakdown chart and the per-year totals</li>
-          <li>Paste each into its labeled box and tap <strong>Parse &amp; Import</strong></li>
+          <li>Click <strong>Open Lootspectrum</strong> above and sign in with Steam if prompted</li>
+          <li>Your profile page shows a <strong>Rarity Distribution</strong> section — find the count next to each color tier</li>
+          <li>In the <strong>Rarity distribution</strong> box, type one line per tier using the keys below</li>
+          <li>Find the <strong>Cases per Year</strong> section and type <code>year: count</code> for each row</li>
+          <li>Tap <strong>Parse &amp; Import</strong></li>
         </ol>
 
-        <h4>Format · rarity distribution</h4>
-        <p>One <code>rarity: count</code> pair per line. Recognized rarities: <code>milspec</code>, <code>restricted</code>, <code>classified</code>, <code>covert</code>, <code>knife</code> (or <code>gloves</code>, <code>contraband</code>).</p>
+        <h4>Rarity keys</h4>
+        <ul>
+          <li><code>milspec</code> → blue (Mil-Spec Grade)</li>
+          <li><code>restricted</code> → purple (Restricted)</li>
+          <li><code>classified</code> → pink (Classified)</li>
+          <li><code>covert</code> → red (Covert)</li>
+          <li><code>knife</code> → gold (knives &amp; gloves)</li>
+        </ul>
         <pre>milspec: 220
 restricted: 5
 classified: 1
 covert: 1
 knife: 2</pre>
 
-        <h4>Format · cases per year</h4>
-        <pre>2021: 4
-2022: 12
-2023: 18
-2024: 35
-2025: 110
-2026: 50</pre>
+        <h4>Cases per year</h4>
+        <pre>2022: 12
+2023: 35
+2024: 110
+2025: 50</pre>
 
-        <h4>Tips</h4>
+        <h4>Notes</h4>
         <ul>
-          <li>This data <strong>overrides</strong> what the dashboard would otherwise auto-derive from your session log</li>
-          <li>Best for users with years of pre-existing case history. New users can skip this entirely and let the session log fill in over time</li>
-          <li>If Lootspectrum is down (it has been before), CSGOSkins or your Steam profile inventory history are decent fallbacks</li>
+          <li>This data overrides what the dashboard auto-derives from your session log</li>
+          <li>New users can skip this — the session log fills it in over time</li>
         </ul>
+
+        <div class="claude-tip">
+          <div class="ct-label">Claude shortcut</div>
+          <p>Screenshot your Lootspectrum profile stats, then paste the image into Claude and say:</p>
+          <p><em>"Extract these CS2 case opening stats. Format rarity as 'rarity: count' using keys: milspec / restricted / classified / covert / knife. Format yearly totals as 'year: count'."</em></p>
+          <p>Paste Claude's output into the boxes above.</p>
+        </div>
       </div>
 
       <!-- SESSION LOG -->
@@ -3318,7 +3466,7 @@ const RARITY_COLORS = {
 // EMPTY default state
 const EMPTY_STATE = {
   profile: { displayName: '', steamId64: '', vanityUrl: '' },
-  settings: { proxyUrl: '' },  // Cloudflare Worker URL for live pricing + Steam inventory
+  settings: { proxyUrl: '', workerToken: '' },  // Cloudflare Worker URL + optional auth token
   sessions: [],
   bigHits: [],            // optional manual trophy entries; auto-derived from sessions if empty
   extraSpend: { keys: 0, cases: 0, skins: 0 },  // cash-flow data beyond session keys
@@ -3580,19 +3728,29 @@ async function fetchSkinportPrices(force = false) {
     return null;
   }
 
-  setStatus(`Fetching Steam prices… 0 / ${names.length}`, '');
-  updatePricingPanel();
-
-  const BATCH_DELAY_MS = 600; // Stay under Steam's ~20 req/min rate limit
+  const BATCH_DELAY_MS = 600;
   const fetched = [];
   let failed = 0;
 
+  const progressEl  = document.getElementById('priceProgress');
+  const progressFill = document.getElementById('priceProgressFill');
+  const progressLabel = document.getElementById('priceProgressLabel');
+  const showProgress = (done, total) => {
+    if (!progressEl) return;
+    progressEl.classList.add('active');
+    progressFill.style.width = `${Math.round((done / total) * 100)}%`;
+    progressLabel.textContent = `${done} / ${total} prices fetched`;
+  };
+  const hideProgress = () => { if (progressEl) progressEl.classList.remove('active'); };
+
+  showProgress(0, names.length);
+  updatePricingPanel();
+
   for (let i = 0; i < names.length; i++) {
     const name = names[i];
-    setStatus(`Fetching Steam prices… ${i + 1} / ${names.length}`, '');
     try {
       const res = await fetch(`${proxyUrl}/price?name=${encodeURIComponent(name)}`, {
-        headers: { 'Accept': 'application/json' },
+        headers: getProxyHeaders(),
       });
       if (res.ok) {
         const data = await res.json();
@@ -3605,14 +3763,18 @@ async function fetchSkinportPrices(force = false) {
           });
         }
       } else if (res.status === 429) {
+        hideProgress();
         setStatus('Steam rate limited — try again in a few minutes', 'err');
         break;
       }
     } catch (err) {
       failed++;
     }
+    showProgress(i + 1, names.length);
     if (i < names.length - 1) await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
   }
+
+  hideProgress();
 
   if (!fetched.length) {
     setStatus('Could not fetch any prices from Steam Market', 'err');
@@ -3630,6 +3792,13 @@ function getProxyUrl() {
   if (!raw) return '';
   // Strip trailing slashes for clean URL composition
   return raw.replace(/\/+$/, '');
+}
+
+function getProxyHeaders() {
+  const headers = { 'Accept': 'application/json' };
+  const token = state.settings?.workerToken?.trim();
+  if (token) headers['X-Worker-Token'] = token;
+  return headers;
 }
 
 // Persist a successful price fetch to localStorage and update UI
@@ -3656,10 +3825,32 @@ async function persistPriceCache(items, sourceName) {
     showToast('Prices loaded but cache too large to persist', 'err');
   }
   setStatus(`Live prices loaded · ${cache.count.toLocaleString()} items from ${sourceName}`, 'ok');
+  revalueHoldings(prices);
   updatePricingPanel();
-  // Remove the fallback help block if a previous fetch had failed
   document.getElementById('priceFallbackHelp')?.remove();
   return cache;
+}
+
+// Revalue existing holdings in-place using a freshly loaded price map,
+// then rebuild category totals and persist state.
+function revalueHoldings(prices) {
+  const holdings = state.inventory?.holdings;
+  if (!holdings?.length) return;
+  for (const h of holdings) {
+    const entry = prices[h.hash];
+    h.value = entry ? Number((entry.min || entry.median || entry.suggested || 0).toFixed(2)) : h.value;
+  }
+  // Rebuild category totals
+  const catMap = {};
+  for (const h of holdings) {
+    const cat = rarityCategory(h.rarity, h.gift, h.star);
+    catMap[cat.name] = catMap[cat.name] || { name: cat.name, count: 0, value: 0, color: cat.color };
+    catMap[cat.name].count++;
+    catMap[cat.name].value += h.value || 0;
+  }
+  state.inventory.categories = Object.values(catMap).sort((a, b) => b.value - a.value);
+  saveState();
+  renderAll();
 }
 
 // When live pricing fails, show the user a helpful explanation + workarounds
@@ -3805,13 +3996,16 @@ function parseSteamInventory(json) {
     for (const t of (d.tags || [])) {
       if (t.category === 'Rarity') {
         const id = (t.internal_name || '').toLowerCase();
-        if (id.includes('common')) rarity = 'milspec';
-        else if (id.includes('uncommon')) rarity = 'restricted';
-        else if (id.includes('rare')) rarity = 'restricted';
-        else if (id.includes('mythical')) rarity = 'classified';
-        else if (id.includes('legendary')) rarity = 'covert';
+        // Steam internal_name maps to CS2 rarity tiers exactly:
+        // common=Consumer, uncommon=Industrial, rare=Mil-Spec,
+        // mythical=Restricted, legendary=Classified, ancient=Covert
+        if (id.includes('contraband') || id.includes('immortal')) rarity = 'contraband';
         else if (id.includes('ancient')) rarity = 'covert';
-        else if (id.includes('immortal') || id.includes('contraband')) rarity = 'knife';
+        else if (id.includes('legendary')) rarity = 'classified';
+        else if (id.includes('mythical')) rarity = 'restricted';
+        else if (id.includes('rare')) rarity = 'milspec';
+        else if (id.includes('uncommon')) rarity = 'industrial';
+        else if (id.includes('common')) rarity = 'consumer';
       }
       if (t.category === 'Exterior') {
         const m = (t.internal_name || '').toLowerCase();
@@ -3832,6 +4026,16 @@ function parseSteamInventory(json) {
     if (/StatTrak™/i.test(hash)) isST = true;
     if (/^Souvenir /i.test(hash)) isSV = true;
 
+    // Badges, pins, and collectibles are account gifts — not weapon skins.
+    // Steam tags them as "legendary" which our rarity map reads as covert, so
+    // we detect them by type and override before that mapping takes effect.
+    const itemType = (d.type || '').toLowerCase();
+    const isGift = itemType.includes('badge') || itemType.includes('pin') ||
+                   itemType.includes('collectible') || itemType.includes('music kit') ||
+                   itemType.includes('profile background') || itemType.includes('patch') ||
+                   /\b(badge|pin)\b/i.test(hash);
+    if (isGift) rarity = 'milspec'; // neutral — no covert highlight
+
     items.push({
       assetid: a.assetid,
       classid: a.classid,
@@ -3842,6 +4046,7 @@ function parseSteamInventory(json) {
       star: isStar,
       st: isST,
       sv: isSV,
+      gift: isGift,
       icon: d.icon_url || ''
     });
   }
@@ -3862,7 +4067,7 @@ async function fetchSteamInventory() {
   if (proxyUrl) {
     try {
       const res = await fetch(`${proxyUrl}/inventory/${id}`, {
-        headers: { 'Accept': 'application/json' }
+        headers: getProxyHeaders()
       });
       if (res.ok) {
         const json = await res.json();
@@ -4207,16 +4412,17 @@ function populateHoldingsFromSteam(items) {
   const holdings = priced.map(i => {
     const clean = i.hash.replace(/^★\s*/, '').replace(/^StatTrak™\s*/i, '').replace(/^Souvenir\s+/i, '').replace(/\s*\([^)]+\)\s*$/, '');
     return {
-      item: clean, wear: i.wear || '—', value: Number((i.value || 0).toFixed(2)),
+      item: clean, hash: i.hash, assetid: i.assetid || '', rarity: i.rarity || 'consumer', wear: i.wear || '—', value: Number((i.value || 0).toFixed(2)),
       ...(i.star ? { star: true } : {}),
       ...(i.st ? { st: true } : {}),
       ...(i.sv ? { sv: true } : {}),
-      ...(i.rarity === 'covert' ? { covert: true } : {}),
-      ...(i.rarity === 'classified' ? { classified: true } : {})
+      ...(i.gift ? { gift: true } : {}),
+      ...(i.rarity === 'covert' && !i.gift ? { covert: true } : {}),
+      ...(i.rarity === 'classified' && !i.gift ? { classified: true } : {})
     };
   });
   for (const h of holdings) {
-    const cat = categorize(h.item + (h.star ? ' ★' : ''));
+    const cat = rarityCategory(h.rarity, h.gift, h.star);
     catMap[cat.name] = catMap[cat.name] || { name: cat.name, count: 0, value: 0, color: cat.color };
     catMap[cat.name].count++;
     catMap[cat.name].value += h.value || 0;
@@ -4389,18 +4595,22 @@ function updateSyncPanel() {
 function totalCasesFromSessions() {
   return state.sessions.reduce((s, sess) => s + sess.pulls.length, 0);
 }
+// Returns highest known case-open count across all sources to avoid double-counting.
+// Lootspectrum = lifetime history; sessions = ongoing log. Take the greater of the two.
+function totalCasesAllSources() {
+  return Math.max(totalCasesFromSessions(), state.extraSpend?.lootCases || 0);
+}
 function totalSessionPullValue() {
   return state.sessions.reduce((sum, sess) =>
     sum + sess.pulls.reduce((s, p) => s + (p.value || 0), 0), 0);
 }
 function totalSpend() {
-  const sessionKeys = totalCasesFromSessions() * KEY_COST;
-  const e = state.extraSpend || { keys: 0, cases: 0, skins: 0 };
-  // extraSpend.keys represents keys spent OUTSIDE of logged sessions (manual setup)
-  return sessionKeys + (e.keys || 0) + (e.cases || 0) + (e.skins || 0);
+  const allCaseKeys = totalCasesAllSources() * KEY_COST;
+  const e = state.extraSpend || {};
+  return allCaseKeys + (e.keys || 0) + (e.cases || 0) + (e.skins || 0);
 }
 function totalKeysSpent() {
-  return totalCasesFromSessions() * KEY_COST + (state.extraSpend?.keys || 0);
+  return totalCasesAllSources() * KEY_COST + (state.extraSpend?.keys || 0);
 }
 function totalRecovery() {
   // Inventory total = sum of holdings (if any) + session pulls that aren't already in holdings (we'll just do session pulls)
@@ -4586,6 +4796,34 @@ function saveProfile(e) {
 // =========================================
 // PROXY (Cloudflare Worker) management
 // =========================================
+function renderSetupLinks() {
+  const id = state.profile?.steamId64 || '';
+
+  // Lootspectrum: direct profile link if we have a SteamID64
+  const lootEl = document.getElementById('sourceLinkLoot');
+  const lootCard = document.getElementById('sourceCardLoot');
+  const drawerLootBtn = document.getElementById('drawerLootBtn');
+  const drawerLootUrl = document.getElementById('drawerLootUrl');
+
+  if (id) {
+    const url = `https://lootspectrum.com/profile/${id}`;
+    const shortLabel = `lootspectrum.com/profile/${id.slice(0,8)}…`;
+    if (lootEl) { lootEl.href = url; lootEl.textContent = shortLabel; }
+    if (lootCard) lootCard.dataset.link = url;
+    if (drawerLootBtn) drawerLootBtn.href = url;
+    if (drawerLootUrl) drawerLootUrl.textContent = shortLabel;
+  } else {
+    const url = 'https://lootspectrum.com';
+    if (lootEl) { lootEl.href = url; lootEl.textContent = 'lootspectrum.com'; }
+    if (lootCard) lootCard.dataset.link = url;
+    if (drawerLootBtn) drawerLootBtn.href = url;
+    if (drawerLootUrl) drawerLootUrl.textContent = 'lootspectrum.com';
+  }
+
+  // Steam Market history: goes to logged-in user's own history page (no ID needed)
+  // CSFloat inventory: direct /inventory link already in HTML, no update needed
+}
+
 function renderProxy() {
   const url = state.settings?.proxyUrl?.trim() || '';
   const display = document.getElementById('proxyDisplayUrl');
@@ -4600,6 +4838,8 @@ function renderProxy() {
   // Pre-fill both path inputs so the value is visible whichever path the user picks
   if (inputShared) inputShared.value = url;
   if (inputOwn) inputOwn.value = url;
+  const tokenInput = document.getElementById('workerTokenInput');
+  if (tokenInput) tokenInput.value = state.settings?.workerToken || '';
 
   if (url) {
     if (meta) meta.innerHTML = '<span style="color: var(--profit);">●</span> Configured · Test to verify';
@@ -4703,6 +4943,9 @@ function saveProxyUrlFromForm(e, path) {
   }
   state.settings = state.settings || {};
   state.settings.proxyUrl = url;
+  // Save token too (only present on the 'own' form)
+  const tokenInput = document.getElementById('workerTokenInput');
+  if (tokenInput) state.settings.workerToken = tokenInput.value.trim();
   saveState();
   renderProxy();
   if (url) {
@@ -4760,7 +5003,7 @@ async function testProxy() {
 
   try {
     const t0 = Date.now();
-    const res = await fetch(`${url}/health`, { headers: { 'Accept': 'application/json' } });
+    const res = await fetch(`${url}/health`, { headers: getProxyHeaders() });
     const ms = Date.now() - t0;
     if (!res.ok) {
       if (meta) meta.innerHTML = `<span style="color: var(--loss);">●</span> Worker responded ${res.status} · check deploy`;
@@ -5148,9 +5391,9 @@ function renderHits() {
 // RENDER — CASH FLOW
 // =========================================
 function renderFlow() {
-  const sessionKeys = totalCasesFromSessions() * KEY_COST;
+  const allCases = totalCasesAllSources();
   const extraKeys = state.extraSpend?.keys || 0;
-  const totalK = sessionKeys + extraKeys;
+  const totalK = allCases * KEY_COST + extraKeys;
   const cases = state.extraSpend?.cases || 0;
   const skins = state.extraSpend?.skins || 0;
   const out = totalK + cases + skins;
@@ -5162,9 +5405,12 @@ function renderFlow() {
   const inMoney = sales + inv;
 
   const fmt = v => '$' + v.toFixed(2);
+  const lootCases = state.extraSpend?.lootCases || 0;
+  const keySrc = lootCases > totalCasesFromSessions() ? 'Lootspectrum' : 'Session log';
+
   document.getElementById('moneyOutTotal').textContent = '−' + fmt(out);
   document.getElementById('keysAmt').textContent = fmt(totalK);
-  document.getElementById('keysSub').textContent = `${totalCasesFromSessions() + (extraKeys / KEY_COST | 0)} × $${KEY_COST}`;
+  document.getElementById('keysSub').textContent = `${allCases} cases × $${KEY_COST} · ${keySrc}`;
   document.getElementById('casesAmt').textContent = fmt(cases);
   document.getElementById('casesSub').textContent = cases > 0 ? 'From Steam Market history' : 'Add via setup';
   document.getElementById('skinsAmt').textContent = fmt(skins);
@@ -5184,7 +5430,6 @@ function renderFlow() {
 // RENDER — INVENTORY
 // =========================================
 function renderInventory() {
-  const cats = state.inventory?.categories || [];
   const holdings = state.inventory?.holdings || [];
 
   const meta = document.getElementById('inventoryMeta');
@@ -5192,10 +5437,35 @@ function renderInventory() {
   const count = holdings.length;
   meta.textContent = count > 0 ? `${count} item${count === 1 ? '' : 's'} // $${total.toFixed(2)}` : 'No inventory data';
 
+  // Build both category sets from holdings so we can switch without re-syncing
+  const catsByRarity = {};
+  const catsByType = {};
+  for (const h of holdings) {
+    const rc = rarityCategory(h.rarity, h.gift, h.star);
+    catsByRarity[rc.name] = catsByRarity[rc.name] || { name: rc.name, count: 0, value: 0, color: rc.color };
+    catsByRarity[rc.name].count++;
+    catsByRarity[rc.name].value += h.value || 0;
+
+    const tc = categorize(h.item + (h.star ? ' ★' : ''));
+    catsByType[tc.name] = catsByType[tc.name] || { name: tc.name, count: 0, value: 0, color: tc.color };
+    catsByType[tc.name].count++;
+    catsByType[tc.name].value += h.value || 0;
+  }
+  const chartMode = state._inventoryChartMode || 'rarity';
+  const activeCats = chartMode === 'type'
+    ? Object.values(catsByType).sort((a, b) => b.value - a.value)
+    : Object.values(catsByRarity).sort((a, b) => b.value - a.value);
+
+  // Sync pill active state
+  document.querySelectorAll('.inv-sort-pill[data-mode]').forEach(p => {
+    p.classList.toggle('active', p.dataset.mode === chartMode);
+  });
+
   // Category chart + legend
   const catEmpty = document.getElementById('catEmpty');
   const catLegend = document.getElementById('catLegend');
   if (charts.catChart) { charts.catChart.destroy(); delete charts.catChart; }
+  const cats = activeCats;
   if (cats.length) {
     catEmpty.style.display = 'none';
     const totalV = cats.reduce((s, c) => s + c.value, 0);
@@ -5214,29 +5484,68 @@ function renderInventory() {
     }).join('');
     // Use count for the chart when no values are available, so the donut still renders
     const chartData = totalV > 0 ? cats.map(c => c.value) : cats.map(c => c.count);
+    const activeFilter = state._holdingsCategoryFilter || null;
+    const offsets = cats.map(c => c.name === activeFilter ? 10 : 0);
     charts.catChart = new Chart(document.getElementById('catChart'), {
       type: 'doughnut',
-      data: { labels: cats.map(c => c.name), datasets: [{ data: chartData, backgroundColor: cats.map(c => c.color), borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
-        plugins: { legend: { display: false }, tooltip: { ...tooltipBase, callbacks: { label: ctx => totalV > 0 ? ` ${ctx.label}: $${ctx.raw.toFixed(2)}` : ` ${ctx.label}: ${ctx.raw} items` } } } }
+      data: { labels: cats.map(c => c.name), datasets: [{ data: chartData, backgroundColor: cats.map(c => c.color), offset: offsets, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        onClick: (evt, elements) => {
+          if (!elements.length) {
+            state._holdingsCategoryFilter = null;
+          } else {
+            const clicked = cats[elements[0].index].name;
+            state._holdingsCategoryFilter = clicked === state._holdingsCategoryFilter ? null : clicked;
+          }
+          renderInventory();
+        },
+        plugins: { legend: { display: false }, tooltip: { ...tooltipBase, callbacks: { label: ctx => totalV > 0 ? ` ${ctx.label}: $${ctx.raw.toFixed(2)}` : ` ${ctx.label}: ${ctx.raw} items` } } }
+      }
     });
   } else {
     catLegend.innerHTML = '';
     catEmpty.style.display = 'block';
   }
 
-  // Holdings table — show top 25 by value, with toggle to show all.
-  // Holdings are pre-sorted by value descending in the import paths.
+  // Holdings table — sorted by active filter, top 25 shown with toggle.
   const rows = document.getElementById('topRows');
   const empty = document.getElementById('holdingsEmpty');
   const table = document.getElementById('holdingsTable');
   const toggle = document.getElementById('holdingsToggle');
-  if (holdings.length) {
+  const titleEl = document.getElementById('holdingsTitle');
+
+  // Apply category filter from pie chart click
+  const catFilter = state._holdingsCategoryFilter || null;
+  const filteredHoldings = catFilter ? holdings.filter(h => {
+    if (chartMode === 'rarity') return rarityCategory(h.rarity, h.gift, h.star).name === catFilter;
+    return categorize(h.item + (h.star ? ' ★' : '')).name === catFilter;
+  }) : holdings;
+
+  if (titleEl) {
+    titleEl.textContent = catFilter ? `[ Holdings · ${catFilter} ]` : '[ Holdings ]';
+    titleEl.title = catFilter ? 'Click chart background to clear filter' : '';
+  }
+
+  if (filteredHoldings.length || catFilter) {
     empty.style.display = 'none';
-    table.style.display = '';
+    table.style.display = filteredHoldings.length ? '' : 'none';
+    if (!filteredHoldings.length && catFilter) {
+      empty.style.display = 'block';
+      empty.textContent = `No holdings in ${catFilter}`;
+    }
+    const sort = state._inventorySort || 'value';
+    document.querySelectorAll('.inv-sort-pill[data-sort]').forEach(p => {
+      p.classList.toggle('active', p.dataset.sort === sort);
+    });
+    const sorted = [...filteredHoldings].sort((a, b) => {
+      if (sort === 'newest') return (BigInt(b.assetid || 0) > BigInt(a.assetid || 0) ? 1 : -1);
+      if (sort === 'oldest') return (BigInt(a.assetid || 0) > BigInt(b.assetid || 0) ? 1 : -1);
+      return b.value - a.value;
+    });
     const PREVIEW = 25;
     const showAll = state._showAllHoldings === true;
-    const visible = showAll ? holdings : holdings.slice(0, PREVIEW);
+    const visible = showAll ? sorted : sorted.slice(0, PREVIEW);
     rows.innerHTML = visible.map((h, i) => {
       const trClass = h.star ? 'starred' : (h.covert ? 'covert' : (h.classified ? 'classified' : ''));
       const star = h.star ? '<span class="star-icon">★</span>' : '';
@@ -5252,17 +5561,19 @@ function renderInventory() {
       </tr>`;
     }).join('');
     if (toggle) {
-      if (holdings.length > PREVIEW) {
+      if (filteredHoldings.length > PREVIEW) {
         toggle.style.display = '';
         toggle.textContent = showAll
           ? `Show top ${PREVIEW} only`
-          : `Show all ${holdings.length} items`;
+          : `Show all ${filteredHoldings.length} items`;
       } else {
         toggle.style.display = 'none';
       }
     }
   } else {
+    if (titleEl) { titleEl.textContent = '[ Holdings ]'; titleEl.title = ''; }
     empty.style.display = 'block';
+    empty.textContent = 'No holdings logged';
     table.style.display = 'none';
     rows.innerHTML = '';
     if (toggle) toggle.style.display = 'none';
@@ -5271,6 +5582,20 @@ function renderInventory() {
 
 function toggleHoldingsView() {
   state._showAllHoldings = !state._showAllHoldings;
+  renderInventory();
+}
+
+function setInventorySort(sort) {
+  state._inventorySort = sort;
+  document.querySelectorAll('.inv-sort-pill[data-sort]').forEach(p => {
+    p.classList.toggle('active', p.dataset.sort === sort);
+  });
+  renderInventory();
+}
+
+function setInventoryChartMode(mode) {
+  if (state._inventoryChartMode !== mode) state._holdingsCategoryFilter = null;
+  state._inventoryChartMode = mode;
   renderInventory();
 }
 
@@ -5386,7 +5711,7 @@ function renderAnalytics() {
 // RENDER — CHARTS (cash flow doughnuts)
 // =========================================
 function renderCashFlowCharts() {
-  const sessionKeys = totalCasesFromSessions() * KEY_COST;
+  const sessionKeys = totalCasesAllSources() * KEY_COST;
   const extraKeys = state.extraSpend?.keys || 0;
   const cases = state.extraSpend?.cases || 0;
   const skins = state.extraSpend?.skins || 0;
@@ -5499,6 +5824,7 @@ function toggleSession(id) {
 function renderAll() {
   renderProfile();
   renderProxy();
+  renderSetupLinks();
   renderHero();
   renderHits();
   renderStreak();
@@ -5748,20 +6074,66 @@ function toggleImport(name) {
   if (panel) panel.classList.toggle('open');
 }
 
+// Maps a holding's stored rarity to an official CS2 rarity tier.
+// Names and colors match the in-game rarity system exactly.
+function rarityCategory(rarity, isGift, isStar) {
+  if (isGift) return { name: 'Account Gifts', color: '#b59a82' };
+  // ★ items (knives, gloves) and contraband are both "Exceedingly Rare" in CS2
+  if (isStar || rarity === 'contraband') return { name: 'Exceedingly Rare', color: '#e4ae39' };
+  const map = {
+    covert:     { name: 'Covert',          color: '#eb4b4b' },
+    classified: { name: 'Classified',      color: '#eb4b82' },
+    restricted: { name: 'Restricted',      color: '#8847ff' },
+    milspec:    { name: 'Mil-Spec',        color: '#4b69ff' },
+    industrial: { name: 'Industrial Grade', color: '#5e98d9' },
+    consumer:   { name: 'Consumer Grade',  color: '#b0b0b0' },
+  };
+  return map[rarity] || { name: 'Other', color: '#9c8060' };
+}
+
 function categorize(itemName) {
   const lower = itemName.toLowerCase();
-  if (lower.includes('★') || lower.includes('knife') || lower.includes('gloves') || lower.includes('bayonet') || lower.includes('karambit') || lower.includes('daggers')) return { name: 'Knives & Gloves', color: '#ffaa33' };
-  const pistols = ['glock', 'usp-s', 'p2000', 'p250', 'desert eagle', 'deagle', 'tec-9', 'cz75', 'five-seven', 'dual berettas', 'r8 revolver'];
-  const rifles = ['ak-47', 'ak47', 'm4a4', 'm4a1-s', 'm4a1', 'famas', 'galil', 'aug', 'sg 553', 'sg553'];
-  const snipers = ['awp', 'ssg 08', 'ssg08', 'scar-20', 'g3sg1'];
-  const shotguns = ['nova', 'xm1014', 'sawed-off', 'mag-7'];
-  const smgs = ['mac-10', 'mp9', 'mp7', 'mp5-sd', 'mp5sd', 'pp-bizon', 'p90', 'ump-45', 'ump45'];
-  if (pistols.some(p => lower.includes(p))) return { name: 'Pistols', color: '#4b69ff' };
+
+  // Account items — check before weapons
+  if (/\b(badge|pin|music kit|profile background|patch|collectible)\b/.test(lower)) return { name: 'Account Gifts', color: '#b59a82' };
+
+  // ★ knives & gloves
+  const knives = ['karambit','m9 bayonet','bayonet','butterfly knife','falchion knife','flip knife','gut knife','huntsman knife','shadow daggers','bowie knife','ursus knife','navaja knife','stiletto knife','talon knife','classic knife','paracord knife','survival knife','nomad knife','skeleton knife','kukri knife'];
+  const gloves = ['sport gloves','driver gloves','hand wraps','moto gloves','specialist gloves','hydra gloves','bloodhound gloves','broken fang gloves','studded gloves','phoenix gloves'];
+  if (lower.includes('★') || knives.some(k => lower.includes(k)) || gloves.some(g => lower.includes(g))) return { name: 'Exceedingly Rare', color: '#e4ae39' };
+
+  // Rifles
+  const rifles = ['ak-47','m4a4','m4a1-s','famas','galil ar','aug','sg 553'];
   if (rifles.some(r => lower.includes(r))) return { name: 'Rifles', color: '#eb4b4b' };
+
+  // Pistols
+  const pistols = ['glock-18','usp-s','p2000','p250','desert eagle','tec-9','cz75-auto','five-sevен','five-seven','dual berettas','r8 revolver'];
+  if (pistols.some(p => lower.includes(p))) return { name: 'Pistols', color: '#4b69ff' };
+
+  // Snipers
+  const snipers = ['awp','ssg 08','scar-20','g3sg1'];
   if (snipers.some(s => lower.includes(s))) return { name: 'Snipers', color: '#8847ff' };
-  if (shotguns.some(s => lower.includes(s))) return { name: 'Shotguns', color: '#3dd07a' };
+
+  // SMGs
+  const smgs = ['mac-10','mp9','mp7','mp5-sd','pp-bizon','p90','ump-45'];
   if (smgs.some(s => lower.includes(s))) return { name: 'SMGs', color: '#5e98d9' };
-  return { name: 'Heavy & Misc', color: '#9c8060' };
+
+  // Shotguns
+  const shotguns = ['nova','xm1014','sawed-off','mag-7'];
+  if (shotguns.some(s => lower.includes(s))) return { name: 'Shotguns', color: '#3dd07a' };
+
+  // Heavy MGs
+  const heavy = ['m249','negev'];
+  if (heavy.some(h => lower.includes(h))) return { name: 'Heavy', color: '#9c8060' };
+
+  // Agents
+  if (lower.includes('agent') || lower.includes('operator') || lower.includes('commander') || lower.includes('lieutenant') || lower.includes('sergeant') || lower.includes('master agent')) return { name: 'Agents', color: '#d4a843' };
+
+  // Stickers / Capsules / Cases
+  if (lower.includes('sticker')) return { name: 'Stickers', color: '#ff7733' };
+  if (lower.includes('case') || lower.includes('capsule') || lower.includes('package')) return { name: 'Cases & Capsules', color: '#b0c3d9' };
+
+  return { name: 'Misc', color: '#9c8060' };
 }
 
 function parseCSFloat() {
@@ -5851,19 +6223,81 @@ function parseCSFloat() {
   scrollToSection('inventory');
 }
 
+// Parses the raw JSON from steamcommunity.com/market/myhistory/render/?count=500
+// Uses hover_json to map listingid → classid, then assets[730][2][classid] for item name.
+function parseSteamHistoryJSON(raw) {
+  let data;
+  try { data = JSON.parse(raw); } catch { return null; }
+  if (!data?.success || !data.results_html) return null;
+
+  let keysSpend = 0, casesSpend = 0, skinsSpend = 0, salesTotal = 0;
+  const buys = [], sales = [];
+
+  // results_html rows: gainorloss has "+" (sold) or "-" (bought),
+  // their_price has the amount, market_listing_item_name has the item name.
+  const doc = new DOMParser().parseFromString(data.results_html, 'text/html');
+  for (const row of doc.querySelectorAll('.market_listing_row')) {
+    const gainEl = row.querySelector('.market_listing_gainorloss');
+    if (!gainEl) continue;
+    const gainText = gainEl.textContent.trim();
+    if (!gainText.startsWith('+') && !gainText.startsWith('-')) continue;
+    const isSale = gainText.startsWith('+');
+    const item = row.querySelector('.market_listing_item_name')?.textContent.trim();
+    if (!item) continue;
+    const priceEl = row.querySelector('.market_listing_their_price');
+    const price = priceEl ? parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0 : 0;
+    if (!price) continue;
+    const date = row.querySelector('.market_listing_listed_date')?.textContent.trim() || '';
+    if (isSale) { salesTotal += price; sales.push({ item, date, amt: price }); }
+    else {
+      const isKey  = /\bkey\b/i.test(item);
+      const isCase = !isKey && /\bcase\b|capsule|package/i.test(item);
+      if (isKey) keysSpend += price; else if (isCase) casesSpend += price; else skinsSpend += price;
+      buys.push({ item, date, amt: price });
+    }
+  }
+
+  if (!buys.length && !sales.length) return { empty: true };
+  return { buys, sales, keysSpend, casesSpend, skinsSpend, salesTotal };
+}
+
 function parseSteam() {
   const text = document.getElementById('steamText').value.trim();
   if (!text) { alert('Paste your Steam Market history first'); return; }
+
+  // Auto-detect: try Steam market history JSON first (from /render endpoint)
+  const jsonResult = parseSteamHistoryJSON(text);
+  if (jsonResult?.empty) {
+    showToast('Steam JSON detected, but item names couldn\'t be read. Try the Claude shortcut in "How to get this".', 'err');
+    return;
+  }
+  if (jsonResult) {
+    const { buys, sales, keysSpend, casesSpend, skinsSpend, salesTotal } = jsonResult;
+    state.extraSpend.keys  = (state.extraSpend.keys  || 0) + keysSpend;
+    state.extraSpend.cases = casesSpend;
+    state.extraSpend.skins = skinsSpend;
+    state.extraSales = salesTotal;
+    state.trades.topBuys = buys.sort((a, b) => b.amt - a.amt).slice(0, 10);
+    state.trades.topSales = sales.sort((a, b) => b.amt - a.amt).slice(0, 10);
+    saveState();
+    renderAll();
+    const kCount = keysSpend > 0 ? ` · ${Math.round(keysSpend / 2.49)} keys` : '';
+    setStatus(`Imported ${buys.length} purchases${kCount} · ${sales.length} sales from JSON`, 'ok');
+    toggleImport('steam');
+    scrollToSection('flow');
+    return;
+  }
+
+  // Fall back to plain-text format
   const lines = text.split('\n').map(l => l.trim()).filter(l => l && (l.toUpperCase().includes('BOUGHT') || l.toUpperCase().includes('SOLD')));
 
-  let casesSpend = 0, skinsSpend = 0, salesTotal = 0;
+  let keysSpend = 0, casesSpend = 0, skinsSpend = 0, salesTotal = 0;
   const buys = [], sales = [];
 
   for (const line of lines) {
     const parts = line.split('|').map(p => p.trim());
     if (parts.length < 4) continue;
     const type = parts[0].toUpperCase();
-    // Last part is price, second-to-last is date
     const priceStr = parts[parts.length - 1].replace(/[$€£,]/g, '').trim();
     const price = parseFloat(priceStr);
     if (isNaN(price)) continue;
@@ -5872,8 +6306,9 @@ function parseSteam() {
     if (!item) continue;
 
     if (type === 'BOUGHT') {
-      const isCase = /\bcase\b/i.test(item) || /capsule/i.test(item) || /package/i.test(item);
-      if (isCase) casesSpend += price; else skinsSpend += price;
+      const isKey  = /\bkey\b/i.test(item);
+      const isCase = !isKey && (/\bcase\b/i.test(item) || /capsule/i.test(item) || /package/i.test(item));
+      if (isKey) keysSpend += price; else if (isCase) casesSpend += price; else skinsSpend += price;
       buys.push({ item, date, amt: price });
     } else if (type === 'SOLD') {
       salesTotal += price;
@@ -5886,10 +6321,10 @@ function parseSteam() {
     return;
   }
 
+  state.extraSpend.keys  = (state.extraSpend.keys  || 0) + keysSpend;
   state.extraSpend.cases = casesSpend;
   state.extraSpend.skins = skinsSpend;
   state.extraSales = salesTotal;
-  // Top 10 of each by amount
   state.trades.topBuys = buys.sort((a, b) => b.amt - a.amt).slice(0, 10);
   state.trades.topSales = sales.sort((a, b) => b.amt - a.amt).slice(0, 10);
 
@@ -5943,6 +6378,13 @@ function parseLootspectrum() {
 
   if (rarity.length) state.analytics.rarityOverride = rarity;
   if (years.length) state.analytics.yearOverride = years;
+
+  // Derive total lifetime case count → drives key cost in Cash Flow
+  // Rarity sum is more reliable; fall back to year sum if only year data provided.
+  const lootCases = rarity.length
+    ? rarity.reduce((s, r) => s + r.count, 0)
+    : years.reduce((s, y) => s + y.cases, 0);
+  if (lootCases > 0) state.extraSpend = { ...(state.extraSpend || {}), lootCases };
 
   saveState();
   renderAll();
