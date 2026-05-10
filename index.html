@@ -6797,19 +6797,28 @@ function run(){
     sp('Page '+page+' scanning...',opens.length+' case opens found so far',page*4);
     fp(cursor).then(function(data){
       if(!data.success)throw new Error(data.error||'Steam API error - are you logged in?');
-      var ai,appItems,k,desc,doc,rows,ri,row,de,dEl,date,res,skin,box,mhn,rar,wear,eText;
+      var ai,appItems,k,desc,rows,ri,row,de,dEl,date,res,skin,box,mhn,rar,wear,eText;
       for(ai in(data.descriptions||{})){appItems=data.descriptions[ai];for(k in appItems){desc=appItems[k];dl[k]=desc;if(desc.classid)dl[desc.classid]=desc;}}
-      doc=new DOMParser().parseFromString(data.html||'','text/html');
-      rows=doc.querySelectorAll('.tradehistoryrow');
-      if(!rawSnippet&&data.html)rawSnippet=data.html.slice(0,500);
+      // Inject into a hidden div in Steam's own DOM — more reliable than DOMParser for HTML fragments
+      var tmp=document.createElement('div');tmp.style.display='none';document.body.appendChild(tmp);
+      tmp.innerHTML=data.html||'';
+      if(!rawSnippet&&data.html)rawSnippet=data.html.slice(0,400);
+      // Try specific selector first, fall back to any element with tradehistory in class
+      rows=tmp.querySelectorAll('.tradehistoryrow');
+      if(!rows.length)rows=tmp.querySelectorAll('[class*="tradehistory"]');
       totalRows+=rows.length;
       for(ri=0;ri<rows.length;ri++){
         row=rows[ri];
-        de=row.querySelector('.tradehistory_event_description');
+        // Try multiple selectors for the event description element
+        de=row.querySelector('.tradehistory_event_description')
+          ||row.querySelector('[class*="event_description"]')
+          ||row.querySelector('[class*="description"]');
         eText=de?de.textContent.trim():'';
+        if(!eText&&row.className)eText='(no desc — row class="'+row.className+'")';
         if(eText)seenTypes[eText]=true;
         if(!de||eText.toLowerCase().indexOf('unlocked a container')<0)continue;
-        dEl=row.querySelector('.tradehistory_date');date=tD(dEl?dEl.textContent:'');
+        dEl=row.querySelector('.tradehistory_date')||row.querySelector('[class*="date"]');
+        date=tD(dEl?dEl.textContent:'');
         res=ei(row,dl);
         skin=res.gained.find(function(i){return i.name&&!/\\bkey\\b|\\bpass\\b/i.test(i.name);})||res.gained[0];
         box=res.lost.find(function(i){return/case|capsule|package/i.test(i.name);})||res.lost.find(function(i){return!/\\bkey\\b/i.test(i.name);})||res.lost[0];
@@ -6817,6 +6826,7 @@ function run(){
         mhn=skin.name;rar=rT(skin.tags)||rC(skin.color);wear=wT(skin.tags)||wN(mhn);
         opens.push({date:date,item:sW(mhn),wear:wear,rarity:rar,value:0,caseName:box?box.name:''});
       }
+      document.body.removeChild(tmp);
       cursor=data.cursor||null;
       if(!cursor){finish();return;}
       setTimeout(next,1100);
