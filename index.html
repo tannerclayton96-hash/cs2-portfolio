@@ -3072,6 +3072,49 @@ stattrak: 26"></textarea>
           </div>
         </div>
       </div>
+
+      <div class="import-panel" id="ip-bookmarklet">
+        <div class="import-head" onclick="toggleImport('bookmarklet')">
+          <div class="ip-meta">
+            <div class="ip-num">05</div>
+            <div>
+              <div class="ip-title">Steam History Import</div>
+              <div class="ip-sub">Auto-imports every case open · dates · items · gold pulls</div>
+            </div>
+          </div>
+          <div class="ip-toggle">▾</div>
+        </div>
+        <div class="import-body">
+          <div class="import-help-bar">
+            <div class="summary">One-click bookmarklet scans your Steam inventory history and hands you JSON to paste here.</div>
+          </div>
+
+          <div style="background:var(--surface-2,#1a1a2e);border:1px solid #2a2a40;border-radius:8px;padding:16px;margin-bottom:16px;">
+            <div class="ip-label" style="margin-bottom:8px;">Step 1 — Install the bookmarklet</div>
+            <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">Drag this button to your bookmarks bar. You only do this once.</p>
+            <a id="bm-link" href="" style="display:inline-block;padding:9px 18px;background:#4b69ff;color:#fff;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;cursor:grab;" title="Drag me to your bookmarks bar">🔍 CS2 History Scanner</a>
+            <p style="font-size:11px;color:var(--muted);margin:10px 0 0;">Can't drag? Right-click → Bookmark this link.</p>
+          </div>
+
+          <div style="background:var(--surface-2,#1a1a2e);border:1px solid #2a2a40;border-radius:8px;padding:16px;margin-bottom:16px;">
+            <div class="ip-label" style="margin-bottom:8px;">Step 2 — Scan your history</div>
+            <ol style="font-size:12px;color:var(--muted);margin:0;padding-left:18px;line-height:2;">
+              <li>Go to <code>steamcommunity.com/profiles/YOUR_STEAMID/inventoryhistory/</code></li>
+              <li>Click the <strong>CS2 History Scanner</strong> bookmark</li>
+              <li>Wait for it to finish scanning (all pages, ~1 req/sec)</li>
+              <li>Click <strong>Copy JSON</strong> in the popup</li>
+            </ol>
+          </div>
+
+          <div class="ip-label">Step 3 — Paste JSON here</div>
+          <textarea class="bulk-textarea" id="bookmarkletText" style="min-height:140px;font-family:var(--mono);font-size:11px;" placeholder='{"_source":"steam_history_bookmarklet","totalCaseOpens":230,"sessions":[...],"golds":[...]}'></textarea>
+
+          <div class="form-actions">
+            <button class="btn" onclick="document.getElementById('bookmarkletText').value=''">Clear</button>
+            <button class="btn primary" onclick="parseBookmarkletImport()">Parse &amp; Import</button>
+          </div>
+        </div>
+      </div>
       </div>
     </details>
   </section>
@@ -6666,6 +6709,112 @@ function parseLootspectrum() {
   setStatus(`Imported: ${parts.join(' · ')}`, 'ok');
   toggleImport('loot');
   scrollToSection('analytics');
+}
+
+// =====================================================================
+// Bookmarklet link — injected dynamically so the javascript: URL is
+// always up-to-date with the hosted bookmarklet.js on GitHub Pages.
+// =====================================================================
+(function injectBookmarkletLink() {
+  const HOSTED = 'https://tannerclayton96-hash.github.io/cs2-portfolio/bookmarklet.js';
+  const snippet = [
+    '(function(){',
+    'if(window.__cs2bm){alert("Scanner already running");return;}',
+    'var s=document.createElement("script");',
+    's.src="' + HOSTED + '?_="+Date.now();',
+    'document.head.appendChild(s);',
+    '})()',
+  ].join('');
+  // Runs after DOM is ready
+  function set() {
+    const a = document.getElementById('bm-link');
+    if (a) a.href = 'javascript:' + snippet;
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', set);
+  else set();
+})();
+
+// =====================================================================
+// Steam History Bookmarklet Import
+// Accepts JSON output from bookmarklet.js:
+//   { _source, _generated, totalCaseOpens, sessions, golds }
+// =====================================================================
+function parseBookmarkletImport() {
+  const raw = (document.getElementById('bookmarkletText')?.value || '').trim();
+  if (!raw) { showToast('Paste the JSON from the bookmarklet first', 'err'); return; }
+
+  let data;
+  try { data = JSON.parse(raw); } catch (e) {
+    showToast('Invalid JSON — copy from the bookmarklet popup exactly', 'err');
+    return;
+  }
+
+  if (data._source !== 'steam_history_bookmarklet') {
+    showToast('This doesn\'t look like bookmarklet output — check _source field', 'err');
+    return;
+  }
+
+  const incomingSessions = data.sessions || [];
+  const incomingGolds    = data.golds    || [];
+  const totalCaseOpens   = data.totalCaseOpens || 0;
+
+  if (!incomingSessions.length) {
+    showToast('No sessions in this data — did the scan find any case opens?', 'err');
+    return;
+  }
+
+  // Merge sessions: keep existing dates (manual entries win), add new dates
+  const existingByDate = new Map((state.sessions || []).map(s => [s.date, s]));
+  let added = 0;
+  for (const sess of incomingSessions) {
+    if (!existingByDate.has(sess.date)) {
+      existingByDate.set(sess.date, {
+        id:    'bm_' + sess.date,
+        date:  sess.date,
+        note:  '',
+        pulls: sess.pulls,
+      });
+      added++;
+    }
+  }
+  state.sessions = Array.from(existingByDate.values())
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  // Add gold pulls to bigHits (deduplicate by name)
+  const existingNames = new Set((state.bigHits || []).map(h => h.name));
+  let goldAdded = 0;
+  for (const gold of incomingGolds) {
+    if (gold.name && !existingNames.has(gold.name)) {
+      state.bigHits = state.bigHits || [];
+      state.bigHits.push(gold);
+      existingNames.add(gold.name);
+      goldAdded++;
+    }
+  }
+
+  // Bump lootCases if bookmarklet found a larger lifetime count
+  if (totalCaseOpens > 0) {
+    state.extraSpend = state.extraSpend || {};
+    if (totalCaseOpens > (state.extraSpend.lootCases || 0)) {
+      state.extraSpend.lootCases = totalCaseOpens;
+    }
+    // Also update lootStats so streak panel uses real data
+    state.lootStats = state.lootStats || {};
+    state.lootStats.totalCases = Math.max(state.lootStats.totalCases || 0, totalCaseOpens);
+  }
+
+  saveState();
+  renderAll();
+
+  const totalPulls = incomingSessions.reduce((s, sess) => s + (sess.pulls?.length || 0), 0);
+  const msg = [
+    added + ' new session' + (added !== 1 ? 's' : ''),
+    totalPulls + ' total pulls',
+    goldAdded > 0 ? goldAdded + ' gold hit' + (goldAdded !== 1 ? 's' : '') : '',
+  ].filter(Boolean).join(' · ');
+  setStatus('Imported: ' + msg, 'ok');
+  toggleImport('bookmarklet');
+  scrollToSection('hits');
 }
 
 // Smooth-scroll helper used after imports so users see their data appear
