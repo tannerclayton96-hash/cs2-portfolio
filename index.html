@@ -3015,16 +3015,20 @@ Tap "How to get this" for step-by-step instructions.'></textarea>
         </div>
         <div class="import-body">
           <div class="import-help-bar">
-            <div class="summary">Paste your Lootspectrum stats. Powers the Analytics section.</div>
+            <div class="summary">Paste your Lootspectrum stats. Powers Analytics + streak tracker.</div>
             <button class="help-link" onclick="openDrawer('loot')"><span class="ico">?</span>How to get this</button>
           </div>
 
           <div class="ip-label">Rarity distribution &nbsp;·&nbsp; <code>rarity: count</code></div>
-          <textarea class="bulk-textarea" id="lootRarity" style="min-height: 110px; margin-bottom: 16px;" placeholder="milspec: 220
-restricted: 5
-classified: 1
-covert: 1
-knife: 2"></textarea>
+          <textarea class="bulk-textarea" id="lootRarity" style="min-height: 130px; margin-bottom: 16px;" placeholder="golds: 2
+coverts: 1
+classifieds: 7
+restricted: 32
+milspecs: 181
+stattrak: 26"></textarea>
+
+          <div class="ip-label">Cases since last gold / knife &nbsp;·&nbsp; from the Lootspectrum sidebar</div>
+          <input type="number" class="form-input" id="lootSinceGold" placeholder="e.g. 132" min="0" style="margin-bottom: 16px; width: 100%; box-sizing: border-box;" />
 
           <div class="ip-label">Cases per year &nbsp;·&nbsp; <code>year: count</code></div>
           <textarea class="bulk-textarea" id="lootYears" style="min-height: 110px;" placeholder="2021: 4
@@ -3035,7 +3039,7 @@ knife: 2"></textarea>
 2026: 50"></textarea>
 
           <div class="form-actions">
-            <button class="btn" onclick="document.getElementById('lootRarity').value='';document.getElementById('lootYears').value='';">Clear</button>
+            <button class="btn" onclick="document.getElementById('lootRarity').value='';document.getElementById('lootYears').value='';document.getElementById('lootSinceGold').value='';">Clear</button>
             <button class="btn primary" onclick="parseLootspectrum()">Parse &amp; Import</button>
           </div>
         </div>
@@ -5291,6 +5295,24 @@ function computeStreaks(mode) {
     ? Math.round(gaps.reduce((s, g) => s + g, 0) / gaps.length)
     : null;
 
+  // If no session data at all, fall back to Lootspectrum aggregate stats
+  if (totalCases === 0) {
+    const ls = state.lootStats;
+    if (ls && ls.totalCases > 0) {
+      const hits = mode === 'gold' ? ls.goldHits : (ls.goldHits + ls.covertHits);
+      return {
+        totalCases:     ls.totalCases,
+        // Lootspectrum only tracks "since last knife/gold" — covert drought is unknown
+        casesSinceHit:  mode === 'gold' ? (ls.casesSinceLastGold ?? null) : null,
+        longestDrought: 0,
+        avgGap:         hits > 0 ? Math.round(ls.totalCases / hits) : null,
+        hits,
+        foundFirstHit:  hits > 0,
+        fromLootspectrum: true,
+      };
+    }
+  }
+
   return { totalCases, casesSinceHit, longestDrought, avgGap, hits: gaps.length + (foundFirstHit ? 1 : 0), foundFirstHit };
 }
 
@@ -5321,47 +5343,55 @@ function renderStreak() {
     currentEl.textContent = '—';
     longestEl.textContent = '—';
     avgEl.textContent = '—';
-    subCurrent.textContent = 'Log a session to start tracking';
+    subCurrent.textContent = 'Import Lootspectrum stats or log a session';
     subLongest.textContent = 'All-time worst run';
     subAvg.textContent = mode === 'gold' ? 'Expected: ~385 cases' : 'Expected: ~155 cases';
     currentEl.className = 'streak-val';
     return;
   }
 
-  // Current streak
-  currentEl.textContent = stats.casesSinceHit;
-
-  // Heat coloring: green if a hit was very recent, gold as drought stretches,
-  // red when significantly past expected. Expected gap is roughly the inverse
-  // of the drop rate: 1/0.0064 ≈ 156 covert, 1/0.0026 ≈ 385 gold.
   const expected = mode === 'gold' ? 385 : 155;
   currentEl.classList.remove('warm', 'hot', 'fresh');
-  if (!stats.foundFirstHit) {
-    // Never had a hit at all
+
+  // Current streak — Lootspectrum only tracks "since last gold/knife", not covert
+  if (stats.casesSinceHit === null) {
+    currentEl.textContent = '—';
+    subCurrent.textContent = `Switch to Gold mode · ${stats.totalCases} cases tracked`;
+  } else if (!stats.foundFirstHit) {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = `${stats.totalCases} opened, no ${mode === 'gold' ? 'gold' : 'covert+'} yet`;
     if (stats.totalCases > expected * 2) currentEl.classList.add('hot');
     else if (stats.totalCases > expected) currentEl.classList.add('warm');
   } else if (stats.casesSinceHit === 0) {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = 'Hit on your most recent pull 🔥';
     currentEl.classList.add('fresh');
   } else if (stats.casesSinceHit < expected * 0.5) {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = `Below average drought (~${expected} expected)`;
     currentEl.classList.add('fresh');
   } else if (stats.casesSinceHit < expected) {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = `Approaching average (~${expected} expected)`;
   } else if (stats.casesSinceHit < expected * 2) {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = `${(stats.casesSinceHit / expected).toFixed(1)}× expected drought`;
     currentEl.classList.add('warm');
   } else {
+    currentEl.textContent = stats.casesSinceHit;
     subCurrent.textContent = `${(stats.casesSinceHit / expected).toFixed(1)}× expected — overdue`;
     currentEl.classList.add('hot');
   }
 
-  // Longest drought
-  longestEl.textContent = stats.longestDrought > 0 ? stats.longestDrought : '—';
-  if (stats.longestDrought > 0 && stats.casesSinceHit >= stats.longestDrought && stats.foundFirstHit) {
+  // Longest drought — not derivable from Lootspectrum aggregates
+  if (stats.fromLootspectrum) {
+    longestEl.textContent = '—';
+    subLongest.textContent = 'Log sessions for drought history';
+  } else if (stats.longestDrought > 0 && stats.casesSinceHit !== null && stats.casesSinceHit >= stats.longestDrought && stats.foundFirstHit) {
+    longestEl.textContent = stats.longestDrought;
     subLongest.innerHTML = '<span style="color: var(--covert);">Currently breaking record</span>';
   } else {
+    longestEl.textContent = stats.longestDrought > 0 ? stats.longestDrought : '—';
     subLongest.textContent = stats.hits > 1 ? `Across ${stats.hits} hit${stats.hits === 1 ? '' : 's'}` : 'Need 2+ hits to compare';
   }
 
@@ -5369,7 +5399,8 @@ function renderStreak() {
   avgEl.textContent = stats.avgGap !== null ? stats.avgGap : '—';
   if (stats.avgGap !== null) {
     const variance = stats.avgGap < expected * 0.7 ? 'better than odds' : stats.avgGap > expected * 1.3 ? 'worse than odds' : 'as expected';
-    subAvg.textContent = `Expected ~${expected} · you're ${variance}`;
+    const src = stats.fromLootspectrum ? ' · Lootspectrum' : '';
+    subAvg.textContent = `Expected ~${expected} · you're ${variance}${src}`;
   } else {
     subAvg.textContent = mode === 'gold' ? 'Expected: ~385 cases' : 'Expected: ~155 cases';
   }
@@ -6547,26 +6578,47 @@ function parseSteamStore() {
 
 function parseLootspectrum() {
   const rarityText = document.getElementById('lootRarity').value.trim();
-  const yearText = document.getElementById('lootYears').value.trim();
+  const yearText   = document.getElementById('lootYears').value.trim();
+  const sinceGoldRaw = document.getElementById('lootSinceGold')?.value.trim();
+  const sinceGold  = sinceGoldRaw ? parseInt(sinceGoldRaw, 10) : null;
+
+  // Rarity label map — accepts both Lootspectrum plural labels and classic short-hand.
+  // StatTrak is a cross-cutting modifier, not a rarity tier; tracked separately below.
+  const rarityMap = {
+    milspec:     { name: 'Mil-Spec',     color: '#4b69ff' },
+    milspecs:    { name: 'Mil-Spec',     color: '#4b69ff' },
+    restricted:  { name: 'Restricted',   color: '#8847ff' },
+    restricteds: { name: 'Restricted',   color: '#8847ff' },
+    classified:  { name: 'Classified',   color: '#d32ce6' },
+    classifieds: { name: 'Classified',   color: '#d32ce6' },
+    covert:      { name: 'Covert',       color: '#eb4b4b' },
+    coverts:     { name: 'Covert',       color: '#eb4b4b' },
+    knife:       { name: 'Knife/Gloves', color: '#ffaa33' },
+    knives:      { name: 'Knife/Gloves', color: '#ffaa33' },
+    gold:        { name: 'Knife/Gloves', color: '#ffaa33' },
+    golds:       { name: 'Knife/Gloves', color: '#ffaa33' },
+    gloves:      { name: 'Knife/Gloves', color: '#ffaa33' },
+    contraband:  { name: 'Knife/Gloves', color: '#ffaa33' },
+  };
 
   const rarity = [];
+  let goldHits = 0, covertHits = 0;
+
   if (rarityText) {
-    const map = {
-      milspec: { name: 'Mil-Spec', color: '#4b69ff' },
-      restricted: { name: 'Restricted', color: '#8847ff' },
-      classified: { name: 'Classified', color: '#d32ce6' },
-      covert: { name: 'Covert', color: '#eb4b4b' },
-      knife: { name: 'Knife/Gloves', color: '#ffaa33' },
-      gloves: { name: 'Knife/Gloves', color: '#ffaa33' },
-      contraband: { name: 'Knife/Gloves', color: '#ffaa33' }
-    };
     for (const line of rarityText.split('\n').map(l => l.trim()).filter(Boolean)) {
-      const [k, v] = line.split(':').map(p => p.trim());
-      const key = (k || '').toLowerCase().replace(/[\s-]/g, '');
-      const count = parseInt(v, 10);
-      if (map[key] && !isNaN(count) && count > 0) {
-        rarity.push({ ...map[key], count });
-      }
+      const colonIdx = line.lastIndexOf(':');
+      if (colonIdx === -1) continue;
+      const rawKey = line.slice(0, colonIdx).trim();
+      const rawVal = line.slice(colonIdx + 1).trim();
+      const key = rawKey.toLowerCase().replace(/[\s-]/g, '');
+      const count = parseInt(rawVal, 10);
+      if (isNaN(count) || count <= 0) continue;
+      if (key === 'stattrak' || key === 'stattracks') continue; // modifier, not a tier
+      const entry = rarityMap[key];
+      if (!entry) continue;
+      rarity.push({ ...entry, count });
+      if (entry.name === 'Knife/Gloves') goldHits += count;
+      else if (entry.name === 'Covert')  covertHits += count;
     }
   }
 
@@ -6574,35 +6626,44 @@ function parseLootspectrum() {
   if (yearText) {
     for (const line of yearText.split('\n').map(l => l.trim()).filter(Boolean)) {
       const [y, c] = line.split(':').map(p => p.trim());
-      const year = (y || '').match(/\d{4}/)?.[0];
+      const year  = (y || '').match(/\d{4}/)?.[0];
       const cases = parseInt(c, 10);
       if (year && !isNaN(cases)) years.push({ year, cases });
     }
     years.sort((a, b) => a.year.localeCompare(b.year));
   }
 
-  if (!rarity.length && !years.length) {
+  const hasSinceGold = sinceGold !== null && !isNaN(sinceGold);
+  if (!rarity.length && !years.length && !hasSinceGold) {
     showToast('No valid stats parsed — tap "How to get this" for the format', 'err');
     return;
   }
 
   if (rarity.length) state.analytics.rarityOverride = rarity;
-  if (years.length) state.analytics.yearOverride = years;
+  if (years.length)  state.analytics.yearOverride  = years;
 
-  // Derive total lifetime case count → drives key cost in Cash Flow
-  // Rarity sum is more reliable; fall back to year sum if only year data provided.
+  // Total lifetime case count → drives key cost in Cash Flow
   const lootCases = rarity.length
     ? rarity.reduce((s, r) => s + r.count, 0)
     : years.reduce((s, y) => s + y.cases, 0);
   if (lootCases > 0) state.extraSpend = { ...(state.extraSpend || {}), lootCases };
 
+  // Store aggregate streak data so renderStreak() can populate without session log
+  state.lootStats = {
+    totalCases: lootCases || (state.lootStats?.totalCases || 0),
+    goldHits,
+    covertHits,
+    casesSinceLastGold: hasSinceGold ? sinceGold : (state.lootStats?.casesSinceLastGold ?? null),
+  };
+
   saveState();
   renderAll();
-  const msg = [
-    rarity.length ? `${rarity.reduce((s, r) => s + r.count, 0)} pulls` : '',
-    years.length ? `${years.length} years` : ''
-  ].filter(Boolean).join(' · ');
-  setStatus(`Imported: ${msg}`, 'ok');
+  const parts = [
+    rarity.length ? `${lootCases} pulls` : '',
+    years.length  ? `${years.length} years` : '',
+    hasSinceGold  ? `${sinceGold} since last gold` : '',
+  ].filter(Boolean);
+  setStatus(`Imported: ${parts.join(' · ')}`, 'ok');
   toggleImport('loot');
   scrollToSection('analytics');
 }
