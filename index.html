@@ -426,18 +426,32 @@
     display: grid; grid-template-columns: 1fr 2fr; gap: 16px;
   }
   @media (max-width: 900px) { .inv-grid { grid-template-columns: 1fr; } }
-  .legend-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .legend-list { display: flex; flex-direction: column; gap: 0; margin-top: 16px; }
+  .legend-item { border-bottom: 1px solid var(--border); }
+  .legend-item:last-child { border-bottom: none; }
   .legend-row {
-    display: grid; grid-template-columns: 12px 1fr auto auto;
+    display: grid; grid-template-columns: 12px 1fr auto auto 14px;
     gap: 12px; padding: 8px 0; align-items: center;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 13px; cursor: pointer; border-radius: 2px;
+    transition: background 0.1s;
   }
-  .legend-row:last-child { border-bottom: none; }
+  .legend-row:hover { background: rgba(255,255,255,0.03); }
   .legend-dot { width: 8px; height: 8px; border-radius: 1px; }
   .legend-name { font-family: var(--sans); }
   .legend-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); text-align: right; }
   .legend-val { font-family: var(--mono); font-weight: 700; text-align: right; }
+  .legend-chevron { color: var(--text-muted); font-size: 11px; text-align: center; transition: transform 0.15s; display: inline-block; }
+  .legend-row.open .legend-chevron { transform: rotate(90deg); }
+  .cat-expand { padding: 2px 0 10px 20px; display: none; }
+  .cat-top-item {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 10px; padding: 5px 0; align-items: baseline;
+    border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px;
+  }
+  .cat-top-item:last-child { border-bottom: none; }
+  .cat-item-name { color: var(--text-dim); font-family: var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-item-wear { color: var(--text-muted); font-family: var(--mono); font-size: 10px; }
+  .cat-item-val { color: var(--text); font-family: var(--mono); font-weight: 700; font-size: 11px; }
 
   /* TABLE */
   table.data {
@@ -563,10 +577,10 @@
 
   /* GETTING STARTED */
   .setup-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
     margin-bottom: 32px;
   }
-  @media (max-width: 900px) { .setup-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 1100px) { .setup-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 540px) { .setup-grid { grid-template-columns: 1fr; } }
   .setup-step {
     background: var(--surface);
@@ -2892,10 +2906,10 @@ Dual Berettas | Melondrama | MW | classified | 9.30"></textarea>
             <div class="feeds">Feeds <span class="arrow">→</span> Cash Flow · Trade Ledger</div>
           </div>
 
-          <div class="setup-step has-link" id="sourceCardCSFloat" data-link="https://csfloat.com/inventory" role="link" tabindex="0">
+          <div class="setup-step has-link" id="sourceCardCSFloat" data-link="https://csfloat.com" role="link" tabindex="0">
             <div class="stepnum">02</div>
             <h3>CSFloat</h3>
-            <div class="source-url"><a id="sourceLinkCSFloat" href="https://csfloat.com/inventory" target="_blank" rel="noopener noreferrer">csfloat.com/inventory</a></div>
+            <div class="source-url"><a id="sourceLinkCSFloat" href="https://csfloat.com" target="_blank" rel="noopener noreferrer">csfloat.com</a></div>
             <div class="desc">Sign in with Steam. Shows every item you hold with float scores and third-party market values. Useful if you want float data alongside Steam prices.</div>
             <div class="feeds">Feeds <span class="arrow">→</span> Inventory · Top Holdings</div>
           </div>
@@ -2906,6 +2920,14 @@ Dual Berettas | Melondrama | MW | classified | 9.30"></textarea>
             <div class="source-url"><a id="sourceLinkLoot" href="https://lootspectrum.com" target="_blank" rel="noopener noreferrer">lootspectrum.com</a></div>
             <div class="desc">Sign in with Steam. Cases page gives lifetime open counts, rarity distribution, and per-case breakdowns. Populates the Analytics and Year Chart sections.</div>
             <div class="feeds">Feeds <span class="arrow">→</span> Analytics · Year Chart</div>
+          </div>
+
+          <div class="setup-step has-link" id="sourceCardStore" data-link="https://store.steampowered.com/account/history/" role="link" tabindex="0">
+            <div class="stepnum">04</div>
+            <h3>Steam Store History</h3>
+            <div class="source-url"><a href="https://store.steampowered.com/account/history/" target="_blank" rel="noopener noreferrer">store.steampowered.com/account/history</a></div>
+            <div class="desc">Your real key purchase history — in-game and Steam Store purchases that never appear in Market history. The most accurate source for total key spend.</div>
+            <div class="feeds">Feeds <span class="arrow">→</span> Cash Flow · Key Spend</div>
           </div>
         </div>
       </div>
@@ -3015,6 +3037,34 @@ knife: 2"></textarea>
           <div class="form-actions">
             <button class="btn" onclick="document.getElementById('lootRarity').value='';document.getElementById('lootYears').value='';">Clear</button>
             <button class="btn primary" onclick="parseLootspectrum()">Parse &amp; Import</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="import-panel" id="ip-store">
+        <div class="import-head" onclick="toggleImport('store')">
+          <div class="ip-meta">
+            <div class="ip-num">04</div>
+            <div>
+              <div class="ip-title">Steam Store Purchase History</div>
+              <div class="ip-sub">Key spend from in-game &amp; Steam Store purchases</div>
+            </div>
+          </div>
+          <div class="ip-toggle">▾</div>
+        </div>
+        <div class="import-body">
+          <div class="import-help-bar">
+            <div class="summary">Raw paste from Steam purchase history page — or use the Claude shortcut for a clean extract. <code style="background:var(--bg);color:var(--gold);font-family:var(--mono);font-size:11px;padding:2px 6px;">Auto-detected</code></div>
+            <button class="help-link" onclick="openDrawer('store')"><span class="ico">?</span>How to get this</button>
+          </div>
+          <textarea class="bulk-textarea" id="storeText" placeholder="Two options:
+
+① Raw paste — go to store.steampowered.com/account/history, press Ctrl+A then Ctrl+C, paste here. The parser finds key purchases automatically.
+
+② Formatted (Claude shortcut) — see &quot;How to get this&quot; for a prompt that extracts just the key lines."></textarea>
+          <div class="form-actions">
+            <button class="btn" onclick="document.getElementById('storeText').value=''">Clear</button>
+            <button class="btn primary" onclick="parseSteamStore()">Parse &amp; Import</button>
           </div>
         </div>
       </div>
@@ -3217,6 +3267,7 @@ knife: 2"></textarea>
     <div class="drawer-tabs">
       <button class="drawer-tab" data-section="csfloat" onclick="showDrawerSection('csfloat')">CSFloat</button>
       <button class="drawer-tab" data-section="steam" onclick="showDrawerSection('steam')">Steam Market</button>
+      <button class="drawer-tab" data-section="store" onclick="showDrawerSection('store')">Steam Store</button>
       <button class="drawer-tab" data-section="loot" onclick="showDrawerSection('loot')">Lootspectrum</button>
       <button class="drawer-tab" data-section="session" onclick="showDrawerSection('session')">Session Log</button>
     </div>
@@ -3225,9 +3276,9 @@ knife: 2"></textarea>
       <!-- CSFLOAT -->
       <div class="drawer-section" data-section="csfloat">
         <div class="drawer-source-cta">
-          <div class="url">csfloat.com/inventory</div>
+          <div class="url">csfloat.com</div>
           <div class="feeds">Powers <span class="arrow">→</span> Inventory · Top Holdings</div>
-          <a class="btn" href="https://csfloat.com/inventory" target="_blank" rel="noopener noreferrer">Open CSFloat ↗</a>
+          <a class="btn" href="https://csfloat.com" target="_blank" rel="noopener noreferrer">Open CSFloat ↗</a>
         </div>
 
         <h4>What you get</h4>
@@ -3308,6 +3359,44 @@ SOLD | StatTrak™ Dual Berettas | Apr 9 2026 | 6.19</pre>
           <p><em>"Format each CS2 Steam Market transaction as: BOUGHT | Item Name | Date | Price — use SOLD for sales. One per line."</em></p>
           <p>Paste Claude's output into the box above.</p>
         </div>
+      </div>
+
+      <!-- STEAM STORE HISTORY -->
+      <div class="drawer-section" data-section="store">
+        <div class="drawer-source-cta">
+          <div class="url">store.steampowered.com/account/history</div>
+          <div class="feeds">Powers <span class="arrow">→</span> Cash Flow · Key Spend</div>
+          <a class="btn" href="https://store.steampowered.com/account/history/" target="_blank" rel="noopener noreferrer">Open Purchase History ↗</a>
+        </div>
+
+        <h4>What you get</h4>
+        <p>Every key you bought directly from Valve — in-game store purchases and Steam Store bundles. This is the data that <strong>never</strong> appears in Steam Market history, which only covers player-to-player trades.</p>
+
+        <h4>Why it matters</h4>
+        <p>Most players buy keys from the in-game store at $2.49 each. That spend is invisible until you import this history — it's typically your biggest single expense category.</p>
+
+        <h4>Option 1 — Direct paste (easiest)</h4>
+        <ol>
+          <li>Click <strong>Open Purchase History</strong> above — log in if prompted</li>
+          <li>Press <code>Ctrl+A</code> then <code>Ctrl+C</code> to copy the entire page</li>
+          <li>Paste directly into the import box and tap <strong>Parse &amp; Import</strong></li>
+        </ol>
+        <p style="font-size:12px; color: var(--text-muted);">The parser scans the raw page text for any line containing "Key" with an associated price — no formatting needed.</p>
+
+        <h4>Option 2 — Claude shortcut (if raw paste misses items)</h4>
+        <div class="claude-tip">
+          <div class="ct-label">Claude shortcut</div>
+          <p>Copy your Steam purchase history page, paste into Claude (claude.ai) and say:</p>
+          <p><em>"From this Steam purchase history, find every CS2 key purchase. Format as one line each: KEY | item name | date | total price paid."</em></p>
+          <p>Paste Claude's output into the import box and tap <strong>Parse &amp; Import</strong>.</p>
+        </div>
+
+        <h4>Notes</h4>
+        <ul>
+          <li>5-packs and 10-packs are handled — the parser reads the total price paid</li>
+          <li>Re-importing replaces the previous store history data (won't double-count)</li>
+          <li>Steam purchase history only goes back ~5 years on the web view</li>
+        </ul>
       </div>
 
       <!-- LOOTSPECTRUM -->
@@ -3469,7 +3558,7 @@ const EMPTY_STATE = {
   settings: { proxyUrl: '', workerToken: '' },  // Cloudflare Worker URL + optional auth token
   sessions: [],
   bigHits: [],            // optional manual trophy entries; auto-derived from sessions if empty
-  extraSpend: { keys: 0, cases: 0, skins: 0 },  // cash-flow data beyond session keys
+  extraSpend: { keys: 0, cases: 0, skins: 0, storeKeySpend: 0 },  // cash-flow data beyond session keys
   extraSales: 0,
   inventory: { categories: [], holdings: [] },
   trades: { topSales: [], topBuys: [] },
@@ -4598,19 +4687,28 @@ function totalCasesFromSessions() {
 // Returns highest known case-open count across all sources to avoid double-counting.
 // Lootspectrum = lifetime history; sessions = ongoing log. Take the greater of the two.
 function totalCasesAllSources() {
-  return Math.max(totalCasesFromSessions(), state.extraSpend?.lootCases || 0);
+  return Math.max(
+    totalCasesFromSessions(),
+    state.extraSpend?.lootCases || 0,
+    state.extraSpend?.storeKeyCount || 0
+  );
 }
 function totalSessionPullValue() {
   return state.sessions.reduce((sum, sess) =>
     sum + sess.pulls.reduce((s, p) => s + (p.value || 0), 0), 0);
 }
+function keySpendTotal() {
+  // Priority: Steam Store history (most direct) > case-derived (Lootspectrum/sessions) > manual
+  const store = state.extraSpend?.storeKeySpend || 0;
+  if (store > 0) return store + (state.extraSpend?.keys || 0);
+  return totalCasesAllSources() * KEY_COST + (state.extraSpend?.keys || 0);
+}
 function totalSpend() {
-  const allCaseKeys = totalCasesAllSources() * KEY_COST;
   const e = state.extraSpend || {};
-  return allCaseKeys + (e.keys || 0) + (e.cases || 0) + (e.skins || 0);
+  return keySpendTotal() + (e.cases || 0) + (e.skins || 0);
 }
 function totalKeysSpent() {
-  return totalCasesAllSources() * KEY_COST + (state.extraSpend?.keys || 0);
+  return keySpendTotal();
 }
 function totalRecovery() {
   // Inventory total = sum of holdings (if any) + session pulls that aren't already in holdings (we'll just do session pulls)
@@ -5391,9 +5489,7 @@ function renderHits() {
 // RENDER — CASH FLOW
 // =========================================
 function renderFlow() {
-  const allCases = totalCasesAllSources();
-  const extraKeys = state.extraSpend?.keys || 0;
-  const totalK = allCases * KEY_COST + extraKeys;
+  const totalK = keySpendTotal();
   const cases = state.extraSpend?.cases || 0;
   const skins = state.extraSpend?.skins || 0;
   const out = totalK + cases + skins;
@@ -5405,12 +5501,21 @@ function renderFlow() {
   const inMoney = sales + inv;
 
   const fmt = v => '$' + v.toFixed(2);
-  const lootCases = state.extraSpend?.lootCases || 0;
-  const keySrc = lootCases > totalCasesFromSessions() ? 'Lootspectrum' : 'Session log';
+  const storeSpend = state.extraSpend?.storeKeySpend || 0;
+  let keySub;
+  if (storeSpend > 0) {
+    const kc = state.extraSpend?.storeKeyCount || Math.round(storeSpend / KEY_COST);
+    keySub = `${kc} keys · $${storeSpend.toFixed(2)} · Steam Store`;
+  } else {
+    const allCases = totalCasesAllSources();
+    const lootCases = state.extraSpend?.lootCases || 0;
+    const keySrc = lootCases > totalCasesFromSessions() ? 'Lootspectrum' : 'Session log';
+    keySub = `${allCases} cases × $${KEY_COST} · ${keySrc}`;
+  }
 
   document.getElementById('moneyOutTotal').textContent = '−' + fmt(out);
   document.getElementById('keysAmt').textContent = fmt(totalK);
-  document.getElementById('keysSub').textContent = `${allCases} cases × $${KEY_COST} · ${keySrc}`;
+  document.getElementById('keysSub').textContent = keySub;
   document.getElementById('casesAmt').textContent = fmt(cases);
   document.getElementById('casesSub').textContent = cases > 0 ? 'From Steam Market history' : 'Add via setup';
   document.getElementById('skinsAmt').textContent = fmt(skins);
@@ -5442,14 +5547,16 @@ function renderInventory() {
   const catsByType = {};
   for (const h of holdings) {
     const rc = rarityCategory(h.rarity, h.gift, h.star);
-    catsByRarity[rc.name] = catsByRarity[rc.name] || { name: rc.name, count: 0, value: 0, color: rc.color };
+    catsByRarity[rc.name] = catsByRarity[rc.name] || { name: rc.name, count: 0, value: 0, color: rc.color, items: [] };
     catsByRarity[rc.name].count++;
     catsByRarity[rc.name].value += h.value || 0;
+    catsByRarity[rc.name].items.push(h);
 
     const tc = categorize(h.item + (h.star ? ' ★' : ''));
-    catsByType[tc.name] = catsByType[tc.name] || { name: tc.name, count: 0, value: 0, color: tc.color };
+    catsByType[tc.name] = catsByType[tc.name] || { name: tc.name, count: 0, value: 0, color: tc.color, items: [] };
     catsByType[tc.name].count++;
     catsByType[tc.name].value += h.value || 0;
+    catsByType[tc.name].items.push(h);
   }
   const chartMode = state._inventoryChartMode || 'rarity';
   const activeCats = chartMode === 'type'
@@ -5475,11 +5582,23 @@ function renderInventory() {
       const pct = totalV > 0
         ? ((c.value / totalV) * 100).toFixed(1)
         : ((c.count / totalCount) * 100).toFixed(1);
-      return `<div class="legend-row">
-        <span class="legend-dot" style="background: ${c.color};"></span>
-        <span class="legend-name">${c.name}</span>
-        <span class="legend-count">${c.count} · ${pct}%</span>
-        <span class="legend-val">$${c.value.toFixed(2)}</span>
+      const top5 = (c.items || []).slice().sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 5);
+      const top5HTML = top5.map(h =>
+        `<div class="cat-top-item">
+          <span class="cat-item-name">${h.item || '—'}</span>
+          <span class="cat-item-wear">${h.wear || ''}</span>
+          <span class="cat-item-val">$${(h.value || 0).toFixed(2)}</span>
+        </div>`
+      ).join('');
+      return `<div class="legend-item">
+        <div class="legend-row" onclick="toggleCatExpand(this)">
+          <span class="legend-dot" style="background: ${c.color};"></span>
+          <span class="legend-name">${c.name}</span>
+          <span class="legend-count">${c.count} · ${pct}%</span>
+          <span class="legend-val">$${c.value.toFixed(2)}</span>
+          <span class="legend-chevron">›</span>
+        </div>
+        <div class="cat-expand">${top5HTML || '<span style="color:var(--text-muted);font-size:11px;font-family:var(--mono);">No items</span>'}</div>
       </div>`;
     }).join('');
     // Use count for the chart when no values are available, so the donut still renders
@@ -5599,6 +5718,14 @@ function setInventoryChartMode(mode) {
   renderInventory();
 }
 
+function toggleCatExpand(row) {
+  const expand = row.nextElementSibling;
+  if (!expand) return;
+  const isOpen = row.classList.contains('open');
+  row.classList.toggle('open', !isOpen);
+  expand.style.display = isOpen ? 'none' : 'block';
+}
+
 // =========================================
 // RENDER — TRADES
 // =========================================
@@ -5711,8 +5838,8 @@ function renderAnalytics() {
 // RENDER — CHARTS (cash flow doughnuts)
 // =========================================
 function renderCashFlowCharts() {
-  const sessionKeys = totalCasesAllSources() * KEY_COST;
-  const extraKeys = state.extraSpend?.keys || 0;
+  const sessionKeys = keySpendTotal();
+  const extraKeys = 0; // already folded into keySpendTotal()
   const cases = state.extraSpend?.cases || 0;
   const skins = state.extraSpend?.skins || 0;
   const sales = state.extraSales || 0;
@@ -6332,6 +6459,89 @@ function parseSteam() {
   renderAll();
   setStatus(`Imported ${buys.length} purchases · ${sales.length} sales`, 'ok');
   toggleImport('steam');
+  scrollToSection('flow');
+}
+
+function parseSteamStore() {
+  const text = document.getElementById('storeText').value.trim();
+  if (!text) { showToast('Paste your Steam purchase history first', 'err'); return; }
+
+  let storeKeySpend = 0, keyCount = 0;
+
+  // Strategy A: any pipe-separated line containing "key"
+  // Handles: "KEY | CS2 Case Key | Jul 10 | 2.49"  OR  "CS2 Case Key | Jul 10 | 2.49"
+  const pipeLines = text.split('\n')
+    .map(l => l.trim())
+    .filter(l => l.includes('|') && /\bkey\b/i.test(l));
+
+  if (pipeLines.length) {
+    for (const line of pipeLines) {
+      const parts = line.split('|').map(p => p.trim());
+      const priceStr = parts[parts.length - 1].replace(/[$,]/g, '').trim();
+      const price = parseFloat(priceStr);
+      if (isNaN(price) || price <= 0 || price > 500) continue;
+      storeKeySpend += price;
+      const allText = parts.slice(0, -1).join(' ');
+      const packMatch = allText.match(/(\d+)\s*(?:-\s*)?(?:pack|keys?)\b/i);
+      keyCount += packMatch ? parseInt(packMatch[1]) : Math.max(1, Math.round(price / KEY_COST));
+    }
+  }
+
+  // Strategy B: raw Steam purchase history paste (line/tab delimited)
+  // Scans for any token matching "key" then finds a price in surrounding tokens
+  if (!storeKeySpend) {
+    const tokens = text.replace(/\r/g, '').split(/[\n\t]+/).map(t => t.trim()).filter(Boolean);
+    const usedIdxs = new Set();
+    for (let i = 0; i < tokens.length; i++) {
+      if (!/\bkey\b/i.test(tokens[i])) continue;
+      if (/^(date|type|description|amount|status|transaction)/i.test(tokens[i])) continue;
+      for (let j = Math.max(0, i - 3); j <= Math.min(tokens.length - 1, i + 4); j++) {
+        if (usedIdxs.has(j)) continue;
+        const m = tokens[j].replace(/,/g, '').match(/^\$?\s*(\d{1,3}(?:\.\d{1,2})?)$/);
+        if (!m) continue;
+        const price = parseFloat(m[1]);
+        if (price <= 0 || price > 500) continue;
+        storeKeySpend += price;
+        usedIdxs.add(j);
+        const packMatch = tokens[i].match(/(\d+)\s*(?:-\s*)?(?:pack|keys?)\b/i);
+        keyCount += packMatch ? parseInt(packMatch[1]) : Math.max(1, Math.round(price / KEY_COST));
+        break;
+      }
+    }
+  }
+
+  // Strategy C: CSV format — Date,Qty,Key,Unit Price,Total
+  // Handles exports like: "May 1 2026,15,Dreams & Nightmares Case Key,$2.49,$40.13"
+  if (!storeKeySpend) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const firstLower = (lines[0] || '').toLowerCase();
+    const dataLines = (firstLower.includes('qty') || firstLower.includes('date')) ? lines.slice(1) : lines;
+    for (const line of dataLines) {
+      if (!line.includes(',')) continue;
+      if (!/\bkey\b/i.test(line)) continue;
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length < 4) continue;
+      const totalStr = parts[parts.length - 1].replace(/[$,\s]/g, '');
+      const total = parseFloat(totalStr);
+      if (isNaN(total) || total <= 0) continue;
+      const qty = parseInt(parts[1]);
+      storeKeySpend += total;
+      keyCount += isNaN(qty) ? Math.max(1, Math.round(total / KEY_COST)) : qty;
+    }
+  }
+
+  if (!storeKeySpend) {
+    showToast('No key purchases found — paste the full Steam purchase history page, or use the Claude shortcut in "How to get this"', 'err');
+    return;
+  }
+
+  state.extraSpend = state.extraSpend || {};
+  state.extraSpend.storeKeySpend = storeKeySpend;
+  state.extraSpend.storeKeyCount = keyCount;
+  saveState();
+  renderAll();
+  setStatus(`Imported ${keyCount} keys · $${storeKeySpend.toFixed(2)} from Steam Store`, 'ok');
+  toggleImport('store');
   scrollToSection('flow');
 }
 
