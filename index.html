@@ -6822,6 +6822,30 @@ function run(){
         res=ei(row,dl);
         skin=res.gained.find(function(i){return i.name&&!/\\bkey\\b|\\bpass\\b/i.test(i.name);})||res.gained[0];
         box=res.lost.find(function(i){return/case|capsule|package/i.test(i.name);})||res.lost.find(function(i){return!/\\bkey\\b/i.test(i.name);})||res.lost[0];
+        // Fallback A: scan every [data-classid] in the row directly (no group required)
+        if(!skin){
+          var allCI=row.querySelectorAll('[data-classid]'),fbi;
+          for(fbi=0;fbi<allCI.length;fbi++){
+            var fbEl=allCI[fbi],fbCi=fbEl.dataset.classid||'',fbIi=fbEl.dataset.instanceid||'0';
+            var fbD=dl[fbCi+'_'+fbIi]||dl[fbCi+'_0']||dl[fbCi]||{};
+            var fbN=fbD.market_hash_name||fbD.name||'';
+            if(fbN&&!/case|capsule|package|\\bkey\\b/i.test(fbN)){
+              skin={name:fbN,color:fbD.name_color||'',tags:fbD.tags||[]};break;
+            }
+          }
+        }
+        // Fallback B: grab any colored item name text directly from the DOM
+        if(!skin){
+          var nameEls=row.querySelectorAll('[class*="item_name"],[class*="history_item"] span[style*="color"]'),fni;
+          for(fni=0;fni<nameEls.length;fni++){
+            var fbTxt=(nameEls[fni].textContent||'').trim();
+            if(fbTxt&&!/case|capsule|package|\\bkey\\b/i.test(fbTxt)){
+              var fbStyle=nameEls[fni].getAttribute('style')||'';
+              var fbColorM=fbStyle.match(/color\s*:\s*(#[0-9a-fA-F]{6})/);
+              skin={name:fbTxt,color:fbColorM?fbColorM[1].replace('#',''):'',tags:[]};break;
+            }
+          }
+        }
         if(!skin||!skin.name)continue;
         mhn=skin.name;rar=rT(skin.tags)||rC(skin.color);wear=wT(skin.tags)||wN(mhn);
         opens.push({date:date,item:sW(mhn),wear:wear,rarity:rar,value:0,caseName:box?box.name:''});
