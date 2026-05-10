@@ -3092,8 +3092,11 @@ stattrak: 26"></textarea>
           <div style="background:var(--surface-2,#1a1a2e);border:1px solid #2a2a40;border-radius:8px;padding:16px;margin-bottom:16px;">
             <div class="ip-label" style="margin-bottom:8px;">Step 1 — Install the bookmarklet</div>
             <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">Drag this button to your bookmarks bar. You only do this once.</p>
-            <a id="bm-link" href="" style="display:inline-block;padding:9px 18px;background:#4b69ff;color:#fff;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;cursor:grab;" title="Drag me to your bookmarks bar">🔍 CS2 History Scanner</a>
-            <p style="font-size:11px;color:var(--muted);margin:10px 0 0;">Can't drag? Right-click → Bookmark this link.</p>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <a id="bm-link" href="" style="display:inline-block;padding:9px 18px;background:#4b69ff;color:#fff;border-radius:6px;font-weight:600;font-size:13px;text-decoration:none;cursor:grab;" title="Drag me to your bookmarks bar">🔍 CS2 History Scanner</a>
+              <button id="bm-copy" class="btn" style="font-size:12px;">Copy URL instead</button>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin:10px 0 0;">Drag the blue button to your bookmarks bar — or click <strong>Copy URL instead</strong>, then add a bookmark manually (Ctrl+D) and paste this as the URL.</p>
           </div>
 
           <div style="background:var(--surface-2,#1a1a2e);border:1px solid #2a2a40;border-radius:8px;padding:16px;margin-bottom:16px;">
@@ -6712,23 +6715,114 @@ function parseLootspectrum() {
 }
 
 // =====================================================================
-// Bookmarklet link — injected dynamically so the javascript: URL is
-// always up-to-date with the hosted bookmarklet.js on GitHub Pages.
+// Bookmarklet — fully self-contained, no external script load.
+// Steam's CSP blocks github.io scripts, so all code lives here.
 // =====================================================================
 (function injectBookmarkletLink() {
-  const HOSTED = 'https://tannerclayton96-hash.github.io/cs2-portfolio/bookmarklet.js';
-  const snippet = [
-    '(function(){',
-    'if(window.__cs2bm){alert("Scanner already running");return;}',
-    'var s=document.createElement("script");',
-    's.src="' + HOSTED + '?_="+Date.now();',
-    'document.head.appendChild(s);',
-    '})()',
-  ].join('');
-  // Runs after DOM is ready
+  // Minified self-contained scanner — runs entirely in Steam's page context
+  const BM = `(function(){
+if(window.__cs2bm){alert('Scanner already running');return;}
+window.__cs2bm=true;
+if(!location.host.includes('steamcommunity.com')||!location.pathname.includes('inventoryhistory')){
+  window.__cs2bm=false;
+  alert('Open on your Steam Inventory History page:\\nsteamcommunity.com/profiles/STEAMID64/inventoryhistory/');
+  return;
+}
+var base=location.origin+location.pathname.split('/inventoryhistory')[0];
+var HIST=base+'/inventoryhistory/';
+var CR={'b0c3d9':'milspec','5e98d9':'milspec','4b69ff':'milspec','8847ff':'restricted','d32ce6':'classified','eb4b4b':'covert','e4ae39':'knife','caab05':'knife','ffd700':'knife'};
+var WA={'Factory New':'FN','Minimal Wear':'MW','Field-Tested':'FT','Well-Worn':'WW','Battle-Scarred':'BS'};
+function rC(h){var c=(h||'').replace('#','').toLowerCase().slice(0,6);return CR[c]||'milspec';}
+function rT(t){var x=(t||[]).find(function(y){return y.category==='Rarity';});return x?rC(x.color):null;}
+function wT(t){var x=(t||[]).find(function(y){return y.category==='Exterior';});return x?(WA[x.localized_tag_name]||''):''}
+function wN(n){for(var k in WA){if(n.indexOf('('+k+')')>=0)return WA[k];}return'';}
+function sW(n){return(n||'').replace(/\\s*\\([^)]+\\)\\s*$/,'').trim();}
+function tD(r){var s=(r||'').replace(/\\s+/g,' ').trim(),d=new Date(s),m;if(!isNaN(d))return d.toISOString().slice(0,10);m=s.match(/(\\w+\\s+\\d+,?\\s*\\d{4})/);return m?new Date(m[1]).toISOString().slice(0,10):s.slice(0,10);}
+var ov=document.createElement('div');
+ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:15px/1.6 sans-serif;gap:14px';
+ov.innerHTML='<div style="font-size:22px;font-weight:700">CS2 History Scanner</div><div id="__p" style="color:#aaa;text-align:center;max-width:340px">Connecting to Steam...</div><div style="width:320px;height:6px;background:#222;border-radius:3px;overflow:hidden"><div id="__b" style="height:100%;background:#4b69ff;width:0%;transition:width .4s"></div></div><div id="__s" style="font-size:12px;color:#555">0 case opens found</div><button id="__c" style="padding:8px 22px;background:#333;border:1px solid #555;color:#ccc;border-radius:6px;cursor:pointer;font-size:13px">Cancel</button>';
+document.body.appendChild(ov);
+var cancelled=false;
+document.getElementById('__c').onclick=function(){cancelled=true;};
+function sp(m,s,p){var pe=document.getElementById('__p'),se=document.getElementById('__s'),be=document.getElementById('__b');if(pe)pe.textContent=m;if(se)se.textContent=s;if(be&&p!=null)be.style.width=Math.min(95,p)+'%';}
+function fp(cur){
+  var p=new URLSearchParams({ajax:'1',l:'english'});
+  p.append('app[]','730');
+  if(cur){p.set('cursor[time]',cur.time);p.set('cursor[time_frac]',cur.time_frac);p.set('cursor[s]',cur.s);}
+  return fetch(HIST+'?'+p.toString(),{credentials:'include',headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(function(r){if(!r.ok)throw new Error('Steam returned '+r.status);return r.json();});
+}
+function ei(row,dl){
+  var gained=[],lost=[],groups=row.querySelectorAll('.tradehistory_items_plusminus'),i,j,grp,sign,nodes,node,t,items,el,ci,ii,k,d,ne,n,c,tt;
+  for(i=0;i<groups.length;i++){
+    grp=groups[i];sign='+';nodes=grp.childNodes;
+    for(j=0;j<nodes.length;j++){node=nodes[j];if(node.nodeType===3){t=node.textContent.trim();if(t==='-'){sign='-';break;}if(t==='+'){sign='+';break;}}}
+    items=grp.querySelectorAll('[data-classid]');
+    for(j=0;j<items.length;j++){el=items[j];ci=el.dataset.classid||'';ii=el.dataset.instanceid||'0';k=ci+'_'+ii;d=dl[k]||dl[ci]||{};ne=el.querySelector('[class*="item_name"]');n=d.market_hash_name||d.name||(ne&&ne.textContent.trim())||'';c=d.name_color||'';tt=d.tags||[];(sign==='+'?gained:lost).push({name:n,color:c,tags:tt});}
+  }
+  return{gained:gained,lost:lost};
+}
+function run(){
+  var opens=[],dl={},cursor=null,page=0;
+  function finish(){
+    ov.remove();window.__cs2bm=false;
+    if(!opens.length){alert(cancelled?'Scan cancelled.':'No case opens found. Check Steam Privacy Settings > Inventory > Public.');return;}
+    var byDate={},i,o,sessions,golds,out,json,mo;
+    for(i=0;i<opens.length;i++){o=opens[i];if(!byDate[o.date])byDate[o.date]=[];byDate[o.date].push({item:o.item,wear:o.wear,rarity:o.rarity,value:0,case:o.caseName});}
+    sessions=Object.keys(byDate).sort(function(a,b){return b.localeCompare(a);}).map(function(d){return{date:d,pulls:byDate[d]};});
+    golds=opens.filter(function(o){return o.rarity==='knife';}).map(function(o){return{type:'knife',tag:'Gold',name:o.item,date:o.date,source:o.caseName,value:0,floatVal:'',odds:'~1 in 385',costBasis:'-'};});
+    out={_source:'steam_history_bookmarklet',_generated:new Date().toISOString().slice(0,10),totalCaseOpens:opens.length,cancelled:cancelled,sessions:sessions,golds:golds};
+    json=JSON.stringify(out,null,2);
+    mo=document.createElement('div');
+    mo.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2147483647;display:flex;align-items:center;justify-content:center;font:14px/1.5 sans-serif';
+    mo.innerHTML='<div style="background:#12121e;border:1px solid #2a2a3e;border-radius:12px;padding:28px;max-width:560px;width:92%;max-height:88vh;display:flex;flex-direction:column;gap:14px"><div style="font-size:20px;font-weight:700;color:#fff">'+opens.length+' Case Opens Found</div><div style="color:#888;font-size:12px">'+sessions.length+' session days - '+golds.length+' gold pulls'+(cancelled?' - scan stopped early':'')+' </div><div style="color:#ccc;font-size:12px;background:#1a1a2e;padding:10px 12px;border-radius:6px">Copy JSON then open CS2 Portfolio dashboard - Setup - <strong style="color:#4b69ff">Steam History Import</strong> - Paste and Import</div><textarea id="__out" style="flex:1;min-height:200px;background:#0a0a12;color:#4fc3f7;border:1px solid #2a2a3e;border-radius:6px;padding:10px;font:11px/1.4 monospace;resize:vertical" readonly>'+json+'</textarea><div style="display:flex;gap:10px"><button id="__cp" style="flex:1;padding:12px;background:#4b69ff;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">Copy JSON</button><button id="__cl" style="padding:12px 20px;background:#222;border:1px solid #333;color:#ccc;border-radius:6px;cursor:pointer">Close</button></div></div>';
+    document.body.appendChild(mo);
+    document.getElementById('__cp').onclick=function(){var ta=document.getElementById('__out');navigator.clipboard.writeText(ta.value).then(function(){var b=document.getElementById('__cp');if(b){b.textContent='Copied!';setTimeout(function(){if(b)b.textContent='Copy JSON';},2500);}}).catch(function(){ta.select();document.execCommand('copy');});};
+    document.getElementById('__cl').onclick=function(){mo.remove();};
+  }
+  function next(){
+    if(cancelled){finish();return;}
+    page++;
+    sp('Page '+page+' scanning...',opens.length+' case opens found so far',page*4);
+    fp(cursor).then(function(data){
+      if(!data.success)throw new Error(data.error||'Steam API error - are you logged in?');
+      var ai,appItems,k,desc,doc,rows,ri,row,de,dEl,date,res,skin,box,mhn,rar,wear;
+      for(ai in(data.descriptions||{})){appItems=data.descriptions[ai];for(k in appItems){desc=appItems[k];dl[k]=desc;if(desc.classid)dl[desc.classid]=desc;}}
+      doc=new DOMParser().parseFromString(data.html||'','text/html');
+      rows=doc.querySelectorAll('.tradehistoryrow');
+      for(ri=0;ri<rows.length;ri++){
+        row=rows[ri];de=row.querySelector('.tradehistory_event_description');
+        if(!de||de.textContent.toLowerCase().indexOf('unlocked a container')<0)continue;
+        dEl=row.querySelector('.tradehistory_date');date=tD(dEl?dEl.textContent:'');
+        res=ei(row,dl);
+        skin=res.gained.find(function(i){return i.name&&!/\\bkey\\b|\\bpass\\b/i.test(i.name);})||res.gained[0];
+        box=res.lost.find(function(i){return/case|capsule|package/i.test(i.name);})||res.lost.find(function(i){return!/\\bkey\\b/i.test(i.name);})||res.lost[0];
+        if(!skin||!skin.name)continue;
+        mhn=skin.name;rar=rT(skin.tags)||rC(skin.color);wear=wT(skin.tags)||wN(mhn);
+        opens.push({date:date,item:sW(mhn),wear:wear,rarity:rar,value:0,caseName:box?box.name:''});
+      }
+      cursor=data.cursor||null;
+      if(!cursor){finish();return;}
+      setTimeout(next,1100);
+    }).catch(function(err){ov.remove();window.__cs2bm=false;alert('Error: '+err.message+'\\n\\nMake sure you are logged into Steam and inventory history is Public.');});
+  }
+  next();
+}
+run();
+})()`;
+
   function set() {
     const a = document.getElementById('bm-link');
-    if (a) a.href = 'javascript:' + snippet;
+    const copyBtn = document.getElementById('bm-copy');
+    if (a) a.href = 'javascript:' + BM;
+    if (copyBtn) {
+      copyBtn.onclick = function() {
+        navigator.clipboard.writeText('javascript:' + BM).then(function() {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(function() { copyBtn.textContent = 'Copy URL instead'; }, 2500);
+        });
+      };
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', set);
   else set();
