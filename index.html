@@ -6763,10 +6763,21 @@ function ei(row,dl){
   return{gained:gained,lost:lost};
 }
 function run(){
-  var opens=[],dl={},cursor=null,page=0;
+  var opens=[],dl={},cursor=null,page=0,totalRows=0,seenTypes={},rawSnippet='';
   function finish(){
     ov.remove();window.__cs2bm=false;
-    if(!opens.length){alert(cancelled?'Scan cancelled.':'No case opens found. Check Steam Privacy Settings > Inventory > Public.');return;}
+    if(!opens.length){
+      var typeList=Object.keys(seenTypes).join('\\n  ');
+      var msg=cancelled?'Scan cancelled.':(
+        'No case opens detected.\\n\\n'+
+        'Pages scanned: '+page+'\\n'+
+        'Total rows found: '+totalRows+'\\n\\n'+
+        'Event types seen:\\n  '+(typeList||'(none — rows may use different class names)')+
+        '\\n\\nPaste this debug info to Claude to fix the parser.'
+      );
+      alert(msg);
+      return;
+    }
     var byDate={},i,o,sessions,golds,out,json,mo;
     for(i=0;i<opens.length;i++){o=opens[i];if(!byDate[o.date])byDate[o.date]=[];byDate[o.date].push({item:o.item,wear:o.wear,rarity:o.rarity,value:0,case:o.caseName});}
     sessions=Object.keys(byDate).sort(function(a,b){return b.localeCompare(a);}).map(function(d){return{date:d,pulls:byDate[d]};});
@@ -6786,13 +6797,18 @@ function run(){
     sp('Page '+page+' scanning...',opens.length+' case opens found so far',page*4);
     fp(cursor).then(function(data){
       if(!data.success)throw new Error(data.error||'Steam API error - are you logged in?');
-      var ai,appItems,k,desc,doc,rows,ri,row,de,dEl,date,res,skin,box,mhn,rar,wear;
+      var ai,appItems,k,desc,doc,rows,ri,row,de,dEl,date,res,skin,box,mhn,rar,wear,eText;
       for(ai in(data.descriptions||{})){appItems=data.descriptions[ai];for(k in appItems){desc=appItems[k];dl[k]=desc;if(desc.classid)dl[desc.classid]=desc;}}
       doc=new DOMParser().parseFromString(data.html||'','text/html');
       rows=doc.querySelectorAll('.tradehistoryrow');
+      if(!rawSnippet&&data.html)rawSnippet=data.html.slice(0,500);
+      totalRows+=rows.length;
       for(ri=0;ri<rows.length;ri++){
-        row=rows[ri];de=row.querySelector('.tradehistory_event_description');
-        if(!de||de.textContent.toLowerCase().indexOf('unlocked a container')<0)continue;
+        row=rows[ri];
+        de=row.querySelector('.tradehistory_event_description');
+        eText=de?de.textContent.trim():'';
+        if(eText)seenTypes[eText]=true;
+        if(!de||eText.toLowerCase().indexOf('unlocked a container')<0)continue;
         dEl=row.querySelector('.tradehistory_date');date=tD(dEl?dEl.textContent:'');
         res=ei(row,dl);
         skin=res.gained.find(function(i){return i.name&&!/\\bkey\\b|\\bpass\\b/i.test(i.name);})||res.gained[0];
